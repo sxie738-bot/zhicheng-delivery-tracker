@@ -290,8 +290,13 @@
 
   </style>
 </head>
-<body>
-<div class="container">
+  <body>
+  <!-- 顶部网页版提示 -->
+  <div id="webBanner" style="display:none; background:var(--accent); color:#fff; text-align:center; padding:7px 16px; font-size:12px; letter-spacing:0.3px;">
+    🌐 网页版已上线：<a href="https://sxie738-bot.github.io/zhicheng-delivery-tracker/" style="color:#fff; text-decoration:underline;" target="_blank">sxie738-bot.github.io/zhicheng-delivery-tracker</a>
+    &nbsp;|&nbsp; 数据存储在本地浏览器，导出 JSON 可同步给团队 ↓
+  </div>
+  <div class="container">
 
   <!-- Header -->
   <div class="header a d1">
@@ -1443,9 +1448,17 @@ document.getElementById('notes-area').addEventListener('input', e => {
     if(!el) return;
     el.textContent = msg;
     el.style.color = 'var(--green)';
-    setTimeout(() => { el.textContent = ''; }, 6000;
+    setTimeout(() => { el.textContent = ''; }, 6000);
   }
 
+  // 自动显示网页版横幅
+  (function() {
+    var isGitHubPages = location.hostname.endsWith('github.io');
+    if (isGitHubPages) {
+      var banner = document.getElementById('webBanner');
+      if (banner) banner.style.display = 'block';
+    }
+  })();
 </script>
 </body>
 </html>
