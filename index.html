@@ -507,8 +507,75 @@
     </div>
   </div>
 
+  <!-- ══ 会议管理 ══ -->
+  <div class="card" id="meeting-card" style="border-left:3px solid var(--orange);">
+    <div class="section-title">
+      <div class="num" style="background:var(--orange)">🔔</div>
+      会议管理
+      <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:4px;">按合同节点自动提醒</span>
+      <span id="meeting-alert" style="font-size:11px;margin-left:8px;color:var(--red);display:none;">🔔 今天有会！</span>
+      <span id="meeting-soon" style="font-size:11px;margin-left:8px;color:var(--orange);display:none;">⏰ 明天有会</span>
+    </div>
+
+    <!-- 今日/明日会议提醒横幅 -->
+    <div id="meeting-reminder-banner" style="
+      display:none;
+      padding:10px 14px;
+      border-radius:6px;
+      margin-bottom:12px;
+      font-size:13px;
+      line-height:1.6;
+    ">
+      <div id="meeting-reminder-text"></div>
+      <button onclick="dismissMeetingReminder()" style="
+        margin-top:6px;
+        padding:3px 10px;
+        border:1px solid var(--border);
+        border-radius:3px;
+        background:var(--card);
+        cursor:pointer;
+        font-size:11px;
+      ">知道了</button>
+    </div>
+
+    <!-- 会议列表 -->
+    <div id="meeting-list" style="margin-bottom:12px;"></div>
+
+    <!-- 新增会议纪要 -->
+    <div style="border:1px solid var(--border);border-radius:6px;padding:10px;background:var(--card2);">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">📝 填写会议纪要（自动归档云端笔记）</div>
+      <input type="text" id="meeting-title-input" placeholder="会议名称（如：第1周复盘会）" style="
+        width:100%;border:1px solid var(--border);border-radius:4px;
+        padding:6px 8px;font-size:13px;outline:none;background:var(--card);
+        margin-bottom:6px;
+      ">
+      <textarea id="meeting-notes-input" rows="3" placeholder="填写会议纪要：讨论内容、决定事项、待办跟进…" style="
+        width:100%;border:1px solid var(--border);border-radius:4px;
+        padding:8px 10px;font-size:13px;resize:vertical;outline:none;
+        font-family:inherit;line-height:1.5;background:var(--card);
+      "></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <label style="font-size:11px;color:var(--muted);cursor:pointer;">
+          <input type="checkbox" id="meeting-notify-next"> 会后自动提醒下周会议
+        </label>
+        <button onclick="saveMeetingNotes()" style="
+          padding:6px 14px;border:none;border-radius:4px;
+          background:var(--orange);color:#fff;cursor:pointer;
+          font-size:12px;font-weight:600;
+        ">☁ 保存纪要到云端</button>
+      </div>
+    </div>
+
+    <!-- 历史会议纪要 -->
+    <div style="margin-top:10px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">📅 历史会议纪要</div>
+      <div id="meeting-history" style="max-height:200px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
   <!-- Timeline -->
   <div class="card a d3">
+
     <div class="section-title"><div class="num">⌚</div>项目时间轴</div>
     <div class="timeline">
       <div class="timeline-head">
@@ -1233,7 +1300,203 @@ document.getElementById('notes-area').addEventListener('input', e => {
     { date:'2026-08-18', label:'项目结项验收', type:'phase', icon:'🏁',
       desc:'第二阶段复盘会 + 结项验收确认表签字',
       ref:'p2-9', urgent:true },
+
   ];
+
+  // ══ 会议提醒节点（合同 + 交付计划）═══════════════════════════
+  const MEETING_REMINDERS = [
+    // — 合同规定：每月2次线上例会（跟进顾问服务阶段）—
+    { date:'2026-05-23', label:'线上例会（第1次/月）', type:'weekly', author:'谢爽',
+      desc:'针对线下培训内容进行督导跟进及线上培训；输出会议纪要同步甲方', contractRef:'合同第1.2条' },
+    { date:'2026-06-06', label:'线上例会（第2次/月）', type:'weekly', author:'谢爽',
+      desc:'针对线下培训内容进行督导跟进及线上培训；输出会议纪要同步甲方', contractRef:'合同第1.2条' },
+    { date:'2026-06-20', label:'线上例会（第1次/月）', type:'weekly', author:'谢爽',
+      desc:'跟进顾问服务；新员工入职后线上培训保持信息同步', contractRef:'合同第1.2条' },
+    { date:'2026-07-04', label:'线上例会（第2次/月）', type:'weekly', author:'谢爽',
+      desc:'跟进顾问服务；输出会议纪要同步进度', contractRef:'合同第1.2条' },
+    { date:'2026-07-18', label:'线上例会（第1次/月）', type:'weekly', author:'谢爽',
+      desc:'跟进第二阶段交付进度；SOP落地情况检查', contractRef:'合同第1.2条' },
+    { date:'2026-08-01', label:'线上例会（第2次/月）', type:'weekly', author:'谢爽',
+      desc:'结项前最后例会；确认验收材料完整性', contractRef:'合同第1.2条' },
+
+    // — 项目交付关键节点会议 —
+    { date:'2026-05-18', label:'🚀 项目启动会', type:'milestone', author:'谢爽',
+      desc:'双方启动会，确认项目负责人、发出资料清单、建立项目群', contractRef:'交付计划P1启动' },
+    { date:'2026-05-25', label:'📋 第1周复盘会', type:'review', author:'谢爽',
+      desc:'第1周复盘：发出本周访谈/巡检记录给甲方，确认签字', contractRef:'合同第4条≥8次线下服务日' },
+    { date:'2026-06-01', label:'📋 第2周复盘会', type:'review', author:'谢爽',
+      desc:'第2周复盘：持续推进访谈，补足线下服务日记录', contractRef:'合同第4条' },
+    { date:'2026-06-08', label:'📋 第3周复盘会', type:'review', author:'谢爽',
+      desc:'第3周复盘：诊断报告初稿内部评审', contractRef:'交付物p1-2' },
+    { date:'2026-06-15', label:'📋 第一阶段复盘会', type:'review', author:'谢爽',
+      desc:'第一阶段复盘 + 验收确认表签字；甲方确认阶段性成果', contractRef:'交付计划P1验收' },
+    { date:'2026-06-22', label:'📋 第二阶段启动复盘', type:'review', author:'谢爽',
+      desc:'第二阶段启动复盘：SOP编写进度检查，AI手册框架确认', contractRef:'交付物p2-1～p2-3' },
+    { date:'2026-07-06', label:'📋 第2月复盘会', type:'review', author:'谢爽',
+      desc:'第2月复盘：SOP四件套初稿评审，培训大纲确认', contractRef:'交付物p2-1/p2-4' },
+    { date:'2026-07-20', label:'📋 第3月中期复盘', type:'review', author:'谢爽',
+      desc:'中期复盘：AI知识库部署进度，耗品工具包试用反馈', contractRef:'交付物p2-5～p2-7' },
+    { date:'2026-08-05', label:'📋 结项前最后复盘', type:'review', author:'谢爽',
+      desc:'结项前复盘：所有交付物自查，结项报告初稿评审', contractRef:'交付物p2-9' },
+    { date:'2026-08-15', label:'📕 结项复盘报告提交', type:'milestone', author:'谢爽',
+      desc:'提交《阶段性结项复盘报告》，准备结项验收材料', contractRef:'交付物p2-9' },
+    { date:'2026-08-18', label:'🏁 结项验收会', type:'milestone', author:'谢爽',
+      desc:'第二阶段复盘会 + 结项验收确认表签字；项目正式结项', contractRef:'合同服务期截止' },
+  ];
+
+  // ══ 会议提醒逻辑 ══
+  function checkMeetingReminders() {
+    const now = new Date();
+    const todayStr = getDateStr(now);
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = getDateStr(tomorrow);
+
+    let todayMeeting = null;
+    let tomorrowMeeting = null;
+    let upcoming = [];
+
+    MEETING_REMINDERS.forEach(function(m) {
+      const diff = Math.round((new Date(m.date + 'T00:00:00') - new Date(todayStr + 'T00:00:00')) / 86400000);
+      if (diff === 0) todayMeeting = m;
+      if (diff === 1) tomorrowMeeting = m;
+      if (diff >= 0 && diff <= 7) upcoming.push({ ...m, diff: diff });
+    });
+
+    // 今日提醒
+    const alertEl = document.getElementById('meeting-alert');
+    const soonEl = document.getElementById('meeting-soon');
+    const banner = document.getElementById('meeting-reminder-banner');
+    const bannerText = document.getElementById('meeting-reminder-text');
+
+    if (todayMeeting) {
+      if (alertEl) alertEl.style.display = 'inline';
+      if (banner) {
+        banner.style.display = 'block';
+        banner.style.background = 'var(--red-light)';
+        banner.style.border = '1px solid var(--red)';
+        if (bannerText) bannerText.innerHTML = '🔔 <strong>今天有会！</strong><br>' + todayMeeting.label + ' — ' + todayMeeting.desc;
+      }
+    } else if (tomorrowMeeting) {
+      if (soonEl) soonEl.style.display = 'inline';
+      if (banner) {
+        banner.style.display = 'block';
+        banner.style.background = 'var(--orange-light)';
+        banner.style.border = '1px solid var(--orange)';
+        if (bannerText) bannerText.innerHTML = '⏰ <strong>明天有会！</strong><br>' + tomorrowMeeting.label + ' — ' + tomorrowMeeting.desc;
+      }
+    }
+
+    // 渲染会议列表
+    renderMeetingList(upcoming);
+    // 加载历史纪要
+    renderMeetingHistory();
+  }
+
+  function renderMeetingList(upcoming) {
+    const list = document.getElementById('meeting-list');
+    if (!list) return;
+    if (!upcoming.length) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px;">未来7天无安排会议</div>';
+      return;
+    }
+    list.innerHTML = upcoming.map(function(m) {
+      const diffLabel = m.diff === 0 ? '【今天】' : m.diff === 1 ? '【明天】' : '【' + m.diff + '天后】';
+      const borderColor = m.diff === 0 ? 'var(--red)' : m.diff === 1 ? 'var(--orange)' : 'var(--border)';
+      return '<div style="padding:6px 10px;border-left:3px solid ' + borderColor + ';margin-bottom:6px;background:var(--card2);border-radius:0 4px 4px 0;">' +
+        '<div style="font-size:12px;font-weight:600;color:var(--text);">' + diffLabel + ' ' + m.label + '</div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + m.date + ' · ' + m.desc + '</div>' +
+        '<div style="font-size:10px;color:var(--accent);margin-top:2px;">' + m.contractRef + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function dismissMeetingReminder() {
+    const banner = document.getElementById('meeting-reminder-banner');
+    if (banner) banner.style.display = 'none';
+  }
+
+  // ══ 会议纪要保存到云端笔记 ══
+  function saveMeetingNotes() {
+    const title = document.getElementById('meeting-title-input').value.trim();
+    const content = document.getElementById('meeting-notes-input').value.trim();
+    if (!title || !content) { alert('请填写会议名称和纪要内容'); return; }
+    const author = document.getElementById('notes-author') ? document.getElementById('notes-author').value.trim() : '谢爽';
+    const ts = new Date().toLocaleString('zh-CN');
+    const entry = {
+      date: todayStr,
+      content: '【会议纪要】' + title + '\n' + content,
+      author: author,
+      ts: ts,
+      cloud: true,
+      isMeeting: true
+    };
+
+    // 保存到本地笔记
+    var local = {};
+    try { local = JSON.parse(localStorage.getItem('zhicheng-v2-notes') || '{}'); } catch(e) {}
+    if (!local[todayStr]) local[todayStr] = [];
+    local[todayStr].push(entry);
+    localStorage.setItem('zhicheng-v2-notes', JSON.stringify(local));
+
+    // 清空输入
+    document.getElementById('meeting-title-input').value = '';
+    document.getElementById('meeting-notes-input').value = '';
+
+    showSyncStatus('会议纪要已保存到云端笔记 ☁');
+    renderMeetingHistory();
+    notesRenderList();
+    notesRenderDates();
+
+    // 自动同步到云端
+    if (typeof notesSyncCloud === 'function') {
+      notesSyncCloud(function() {});
+    }
+  }
+
+  function renderMeetingHistory() {
+    const el = document.getElementById('meeting-history');
+    if (!el) return;
+    var local = {};
+    try { local = JSON.parse(localStorage.getItem('zhicheng-v2-notes') || '{}'); } catch(e) {}
+    var allNotes = [];
+    Object.keys(local).forEach(function(date) {
+      local[date].forEach(function(n) {
+        if (n.isMeeting) allNotes.push({ ...n, date: date });
+      });
+    });
+    allNotes.sort(function(a, b) { return a.date > b.date ? -1 : 1; });
+    if (!allNotes.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:11px;text-align:center;padding:8px;">暂无会议纪要</div>';
+      return;
+    }
+    el.innerHTML = allNotes.slice(0, 10).map(function(n) {
+      return '<div style="padding:4px 0;border-bottom:1px solid var(--border-light);">' +
+        '<div style="font-size:11px;font-weight:600;color:var(--accent);">' + n.date + ' · ' + n.content.slice(0, 40).replace('【会议纪要】', '') + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);white-space:pre-wrap;overflow:hidden;text-overflow:ellipsis;">' + n.content.slice(0, 80) + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  // ══ 浏览器通知（需要用户授权）═
+  function requestNotificationPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }
+
+  function sendMeetingNotification(msg) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    new Notification('致城项目会议提醒', {
+      body: msg,
+      icon: 'https://sxie738-bot.github.io/zhicheng-delivery-tracker/favicon.ico',
+      tag: 'zhicheng-meeting'
+    });
+  }
+
+  // 页面加载时检查会议 + 请求通知权限
+  requestNotificationPermission();
 
   // 明天行动建议（根据合同交付节点倒推）
   const TOMORROW_ACTIONS = {
