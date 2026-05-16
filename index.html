@@ -291,11 +291,7 @@
   </style>
 </head>
   <body>
-  <!-- 顶部网页版提示 -->
-  <div id="webBanner" style="display:none; background:var(--accent); color:#fff; text-align:center; padding:7px 16px; font-size:12px; letter-spacing:0.3px;">
-    🌐 网页版已上线：<a href="https://sxie738-bot.github.io/zhicheng-delivery-tracker/" style="color:#fff; text-decoration:underline;" target="_blank">sxie738-bot.github.io/zhicheng-delivery-tracker</a>
-    &nbsp;|&nbsp; 数据存储在本地浏览器，导出 JSON 可同步给团队 ↓
-  </div>
+  <!-- webBanner移到最底部（见</body>前） -->
   <div class="container">
 
   <!-- Header -->
@@ -306,13 +302,14 @@
     </div>
     <div class="header-right">
       <span class="phase-badge blue" id="status-badge">⏳ 距启动 2 天</span>
+      <span class="phase-badge green" id="countdown-badge" style="font-size:11px;">⏱ 剩余 94 天</span>
       <div class="sync-buttons">
         <button class="btn-sync btn-export" onclick="exportAll()">📥 导出全部数据</button>
         <button class="btn-sync btn-import" onclick="document.getElementById('import-input').click()">📤 导入数据文件</button>
         <input type="file" class="file-import-input" id="import-input" accept=".json" onchange="importAll(this)">
       </div>
       <div class="sync-status" id="sync-status"></div>
-      <div class="header-meta">服务期：2026.5.18 — 2026.8.18（含税服务费）</div>
+      <div class="header-meta">服务期：2026.5.18 — 2026.8.18</div>
     </div>
   </div>
 
@@ -408,6 +405,15 @@
         <div class="plan-items" id="today-items"></div>
         <div class="plan-milestone" id="today-milestone"></div>
         <div class="plan-done" id="today-done-area"></div>
+        <!-- 用户自定义任务同步区 -->
+        <div id="plan-custom-area" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border-light);">
+          <div class="plan-section-label" style="color:var(--accent);">✏ 我的任务</div>
+          <div id="plan-custom-items"></div>
+          <button onclick="document.getElementById('custom-task-input').focus()" style="
+            margin-top:6px;background:none;border:1px dashed var(--accent);color:var(--accent);
+            padding:4px 10px;border-radius:3px;font-size:11px;cursor:pointer;width:100%;
+          ">＋ 添加任务</button>
+        </div>
       </div>
 
       <!-- Tomorrow Panel -->
@@ -474,6 +480,29 @@
           <div class="task-name" data-for="t7">确认发票类目（咨询服务费 vs 培训服务费）</div>
           <div class="task-meta"><span class="tag due">5月内</span><span class="pri p2">P2</span></div>
         </div>
+      </div>
+    </div>
+
+    <!-- 自定义任务清单 -->
+    <div class="card" id="custom-task-card" style="border-left:3px solid var(--accent);">
+      <div class="section-title">
+        <div class="num" style="background:var(--accent)">✏</div>
+        📋 今日自定义任务
+        <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:4px;">添加后自动同步到每日行动规划</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input type="text" id="custom-task-input" placeholder="输入今日任务，回车添加…" style="
+          flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:4px;
+          font-size:13px;outline:none;background:var(--card2);
+        " onkeydown="if(event.key==='Enter')addCustomTask()">
+        <button onclick="addCustomTask()" style="
+          padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:4px;
+          font-size:13px;cursor:pointer;font-weight:600;
+        ">添加</button>
+      </div>
+      <div id="custom-task-list"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;">
+        ✅ 已完成的任务会自动标记，每天0点自动清空待办记录
       </div>
     </div>
   </div>
@@ -1114,9 +1143,14 @@ document.getElementById('notes-area').addEventListener('input', e => {
   
   // ── Smart Daily Planner ──
   const PLAN_KEY = 'zhicheng-v2-plan';
+  const CUSTOM_KEY = 'zhicheng-v2-custom-tasks';
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
   const PHASE1_END = new Date('2026-06-17');
   const PHASE2_END = new Date('2026-08-18');
-  const TODAY = new Date('2026-05-16');
+  const PHASE1_END = new Date('2026-06-17');
+  const PHASE2_END = new Date('2026-08-18');
+
 
   // 定义关键里程碑（日期, 名称, 关联交付项）
   const MILESTONES = [
@@ -1196,6 +1230,95 @@ document.getElementById('notes-area').addEventListener('input', e => {
   ];
 
   function getDateStr(d) { return d.toISOString().slice(0,10); }
+
+  // ══ 服务期倒计时 ══
+  function updateCountdown() {
+    const end = new Date('2026-08-18');
+    const now = new Date();
+    const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+    const el = document.getElementById('countdown-badge');
+    if (el) el.textContent = `⏱ 剩余 ${diff} 天`;
+  }
+
+  // ══ 自定义任务 ══
+  function loadCustomTasks() {
+    return JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
+  }
+
+  function saveCustomTasks(tasks) {
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify(tasks));
+  }
+
+  function addCustomTask() {
+    const input = document.getElementById('custom-task-input');
+    const val = input.value.trim();
+    if (!val) return;
+    const tasks = loadCustomTasks();
+    tasks.push({ id: Date.now(), text: val, done: false, date: todayStr });
+    saveCustomTasks(tasks);
+    input.value = '';
+    renderCustomTasks();
+    renderPlanCustom();
+  }
+
+  function toggleCustomTask(id) {
+    const tasks = loadCustomTasks();
+    const t = tasks.find(x => x.id === id);
+    if (t) t.done = !t.done;
+    saveCustomTasks(tasks);
+    renderCustomTasks();
+    renderPlanCustom();
+  }
+
+  function delCustomTask(id) {
+    let tasks = loadCustomTasks();
+    tasks = tasks.filter(x => x.id !== id);
+    saveCustomTasks(tasks);
+    renderCustomTasks();
+    renderPlanCustom();
+  }
+
+  function renderCustomTasks() {
+    const tasks = loadCustomTasks().filter(t => t.date === todayStr);
+    const list = document.getElementById('custom-task-list');
+    if (!list) return;
+    if (!tasks.length) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px;">今日暂无自定义任务</div>';
+      return;
+    }
+    list.innerHTML = tasks.map(t => `
+      <div class="plan-item ${t.done ? 'done' : ''}" style="display:flex;align-items:center;gap:8px;padding:5px 0;">
+        <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleCustomTask(${t.id})" style="width:14px;height:14px;cursor:pointer;">
+        <span style="flex:1;font-size:13px;">${t.text}</span>
+        <span style="font-size:10px;color:var(--muted);">${t.done ? '✅' : ''}</span>
+        <button onclick="delCustomTask(${t.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;padding:0 2px;">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function renderPlanCustom() {
+    const tasks = loadCustomTasks().filter(t => t.date === todayStr);
+    const list = document.getElementById('plan-custom-items');
+    if (!list) return;
+    if (!tasks.length) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:4px 0;">暂无任务，添加一个？</div>';
+      return;
+    }
+    list.innerHTML = tasks.map(t => `
+      <div class="plan-item ${t.done ? 'done' : ''}" style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+        <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleCustomTask(${t.id})" style="width:13px;height:13px;cursor:pointer;">
+        <span style="flex:1;font-size:12px;">${t.text}</span>
+        <button onclick="delCustomTask(${t.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:10px;padding:0;">✕</button>
+      </div>
+    `).join('');
+  }
+
+  // 在计划渲染完成后，把自定义任务也渲染一次
+  const _origRenderPlan = renderPlan;
+  function renderPlan() {
+    _origRenderPlan.call(this);
+    renderPlanCustom();
+  }
 
   function daysUntil(dateStr) {
     const target = new Date(dateStr);
@@ -1456,9 +1579,32 @@ document.getElementById('notes-area').addEventListener('input', e => {
     var isGitHubPages = location.hostname.endsWith('github.io');
     if (isGitHubPages) {
       var banner = document.getElementById('webBanner');
-      if (banner) banner.style.display = 'block';
+      if (banner) {
+        banner.style.display = 'block';
+        // 桌面版不显示
+      }
     }
   })();
 </script>
+  <!-- ══ 页脚：网页版提示 ══ -->
+  <div id="webBanner" style="
+    display:none;
+    background:var(--card2);
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    text-align: center;
+    padding: 10px 20px;
+    font-size: 12px;
+    margin-top: 48px;
+    border-radius: 6px;
+  ">
+    🌐 网页版：<a href="https://sxie738-bot.github.io/zhicheng-delivery-tracker/" target="_blank" style="color:var(--accent);">sxie738-bot.github.io/zhicheng-delivery-tracker</a>
+    &nbsp;·&nbsp;
+    <span style="color:var(--text-mid)">数据存本地浏览器</span>
+    &nbsp;·&nbsp;
+    <button onclick="alert('Chrome/Edge：点地址栏右侧 ⭐ → 添加到桌面\nSafari：点分享按钮 → 添加至主屏幕')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;text-decoration:underline;padding:0;">📱 添加到桌面</button>
+    &nbsp;·&nbsp;
+    <span style="color:var(--text-mid)">导出JSON可同步给团队</span>
+  </div>
 </body>
 </html>
