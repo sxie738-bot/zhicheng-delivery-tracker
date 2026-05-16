@@ -814,15 +814,64 @@
     </div>
   </div>
 
-  <!-- Notes -->
-  <div class="card">
-    <div class="section-title"><div class="num" style="background:var(--muted)">✎</div>项目笔记（本地自动保存）</div>
-    <textarea id="notes-area" placeholder="记录重要决策、甲方反馈、问题卡点、版本记录……"></textarea>
+  <!-- ══ 项目笔记（云端版）═════════════════════════════════════ -->
+  <div class="card" id="notes-card">
+    <div class="section-title">
+      <div class="num" style="background:var(--muted)">✎</div>
+      项目笔记
+      <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:4px;">团队共享 · 云端实时同步</span>
+      <span id="notes-cloud-status" style="font-size:11px;margin-left:8px;color:var(--green);display:none;">✅ 已同步</span>
+      <span id="notes-cloud-offline" style="font-size:11px;margin-left:8px;color:var(--muted);">📴 仅本地</span>
+    </div>
+
+    <!-- 日期选择器 -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <button onclick="notesJumpDay(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--card2);cursor:pointer;font-size:14px;">◀</button>
+      <input type="date" id="notes-date-picker" style="border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:13px;outline:none;background:var(--card2);" onchange="notesLoadDate()">
+      <button onclick="notesJumpDay(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--card2);cursor:pointer;font-size:14px;">▶</button>
+      <span style="font-size:12px;color:var(--muted);" id="notes-date-label"></span>
+      <div style="margin-left:auto;display:flex;gap:6px;">
+        <button onclick="notesToday()" style="padding:4px 10px;border:1px solid var(--accent);border-radius:4px;background:var(--accent-light);color:var(--accent);cursor:pointer;font-size:12px;font-weight:600;">📅 今天</button>
+        <button onclick="notesRefresh()" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--card2);color:var(--text-mid);cursor:pointer;font-size:12px;">🔄 刷新</button>
+        <button onclick="notesSyncCloud()" id="notes-sync-btn" style="padding:4px 10px;border:1px solid var(--green);border-radius:4px;background:var(--green-light);color:var(--green);cursor:pointer;font-size:12px;font-weight:600;">☁ 同步云端</button>
+      </div>
+    </div>
+
+    <!-- 当日笔记列表 -->
+    <div id="notes-list" style="min-height:60px;max-height:320px;overflow-y:auto;margin-bottom:10px;">
+      <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px;">加载中…</div>
+    </div>
+
+    <!-- 新增笔记输入区 -->
+    <div style="border:1px solid var(--border);border-radius:6px;padding:10px;background:var(--card2);">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">📝 写笔记（当天复盘 / 决策 / 问题记录）</div>
+      <textarea id="notes-input" rows="3" placeholder="输入今天的复盘内容或工作记录…支持多行" style="
+        width:100%;border:1px solid var(--border);border-radius:4px;padding:8px 10px;
+        font-size:13px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;
+        background:var(--card);
+      "></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px;">
+        <input type="text" id="notes-author" placeholder="署名（选填，如：谢爽）" style="
+          flex:1;border:1px solid var(--border);border-radius:4px;padding:6px 8px;
+          font-size:12px;outline:none;background:var(--card);
+        ">
+        <div style="display:flex;gap:6px;">
+          <button onclick="notesAdd('local')" style="padding:6px 12px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text-mid);cursor:pointer;font-size:12px;">💾 仅本地保存</button>
+          <button onclick="notesAdd('cloud')" style="padding:6px 14px;border:none;border-radius:4px;background:var(--accent);color:#fff;cursor:pointer;font-size:12px;font-weight:600;">☁ 保存并同步</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 历史笔记快速跳转 -->
+    <div style="margin-top:10px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">📅 历史笔记快速查看</div>
+      <div id="notes-dates" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
   </div>
 
   <div class="footer">
     致城集合顾问项目 · 订一晚（上海）教育科技有限公司 · 核心顾问：谢爽
-    · 数据存储于本地浏览器，刷新不丢失
+    · 笔记数据支持本地+云端双重存储
     · 最后保存：<span id="last-save">—</span>
   </div>
 </div>
@@ -1584,6 +1633,233 @@ document.getElementById('notes-area').addEventListener('input', e => {
         // 桌面版不显示
       }
     }
+  // ══ 项目云端笔记 ══
+  const NOTES_GIST_ID = 'bec01f5abed2dab20972586898f8342b';
+  const NOTES_GIST_RAW = 'https://gist.githubusercontent.com/sxie738-bot/' + NOTES_GIST_ID + '/raw/notes.json';
+  const NOTES_KEY = 'zhicheng-v2-notes';  // 本地备份
+  const NOTES_DRAFT_KEY = 'zhicheng-v2-notes-draft';  // 草稿
+  let cloudNotes = { notes: [] };
+  let currentDate = todayStr;  // YYYY-MM-DD
+  let localDraft = '';
+
+  // 加载日期选择器默认值
+  (function initNotesDate() {
+    const picker = document.getElementById('notes-date-picker');
+    if (picker) picker.value = todayStr;
+    const label = document.getElementById('notes-date-label');
+    if (label) label.textContent = todayStr;
+  })();
+
+  function notesGetDates() {
+    var dates = {};
+    try { dates = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); } catch(e) {}
+    if (cloudNotes.notes) {
+      cloudNotes.notes.forEach(n => { if (n.date) dates[n.date] = true; });
+    }
+    return dates;
+  }
+
+  function notesFormatDate(ds) {
+    var d = new Date(ds + 'T00:00:00');
+    var diff = Math.round((new Date(todayStr + 'T00:00:00') - d) / 86400000);
+    if (diff === 0) return '今天';
+    if (diff === 1) return '昨天';
+    if (diff === -1) return '明天';
+    if (diff > 0 && diff <= 7) return diff + '天前';
+    return ds.slice(5); // MM-DD
+  }
+
+  function notesSaveLocal(data) {
+    var local = {};
+    try { local = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); } catch(e) {}
+    data.notes.forEach(function(n) {
+      if (!local[n.date]) local[n.date] = [];
+      // 避免重复
+      var exists = local[n.date].some(function(x) { return x.ts === n.ts && x.content === n.content; });
+      if (!exists) local[n.date].push(n);
+    });
+    localStorage.setItem(NOTES_KEY, JSON.stringify(local));
+  }
+
+  function notesLoadLocal() {
+    try {
+      var local = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}');
+      return local[currentDate] || [];
+    } catch(e) { return []; }
+  }
+
+  function notesRenderList() {
+    var local = notesLoadLocal();
+    var list = document.getElementById('notes-list');
+    if (!list) return;
+    if (!local.length) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px;">今天还没有笔记，添加一条吧 ↑</div>';
+      return;
+    }
+    list.innerHTML = local.map(function(n) {
+      var author = n.author ? '<span style="font-size:11px;color:var(--accent);font-weight:600;margin-right:8px;">' + n.author + '</span>' : '';
+      var cloud = n.cloud ? '<span style="font-size:10px;color:var(--green);"> ☁</span>' : '<span style="font-size:10px;color:var(--muted);"> 📴</span>';
+      var ts = n.ts ? '<span style="font-size:10px;color:var(--muted);">' + n.ts + '</span>' : '';
+      return '<div style="padding:8px 0;border-bottom:1px solid var(--border-light);">' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' + author + cloud + ts + '</div>' +
+        '<div style="font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap;">' + n.content + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function notesRenderDates() {
+    var dates = notesGetDates();
+    var allDates = Object.keys(dates).sort().reverse().slice(0, 20);
+    var el = document.getElementById('notes-dates');
+    if (!el) return;
+    el.innerHTML = allDates.map(function(d) {
+      var isToday = d === todayStr;
+      return '<button onclick="notesGoDate(\'' + d + '\')" style="' +
+        'padding:3px 8px;border-radius:3px;font-size:11px;cursor:pointer;' +
+        (isToday ? 'background:var(--accent);color:#fff;border:1px solid var(--accent);' :
+         'background:var(--card2);color:var(--text-mid);border:1px solid var(--border);') +
+        '">' + notesFormatDate(d) + '</button>';
+    }).join('');
+  }
+
+  function notesGoDate(d) {
+    currentDate = d;
+    document.getElementById('notes-date-picker').value = d;
+    document.getElementById('notes-date-label').textContent = d;
+    notesRenderList();
+  }
+
+  function notesToday() {
+    notesGoDate(todayStr);
+  }
+
+  function notesJumpDay(delta) {
+    var d = new Date(currentDate + 'T00:00:00');
+    d.setDate(d.getDate() + delta);
+    notesGoDate(d.toISOString().slice(0, 10));
+  }
+
+  function notesLoadDate() {
+    var picker = document.getElementById('notes-date-picker');
+    if (picker) notesGoDate(picker.value);
+  }
+
+  function notesAdd(mode) {
+    var content = document.getElementById('notes-input').value.trim();
+    if (!content) { alert('请输入笔记内容'); return; }
+    var author = document.getElementById('notes-author').value.trim() || '顾问';
+    var ts = new Date().toLocaleString('zh-CN');
+    var entry = { date: currentDate, content: content, author: author, ts: ts, cloud: mode === 'cloud' };
+
+    // 保存到本地
+    var local = {};
+    try { local = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); } catch(e) {}
+    if (!local[currentDate]) local[currentDate] = [];
+    local[currentDate].push(entry);
+    localStorage.setItem(NOTES_KEY, JSON.stringify(local));
+
+    // 清空输入框
+    document.getElementById('notes-input').value = '';
+    notesRenderList();
+    notesRenderDates();
+    showSyncStatus('笔记已保存' + (mode === 'cloud' ? '，正在同步…' : '（仅本地）'));
+
+    if (mode === 'cloud') {
+      notesSyncCloud(function() {
+        showSyncStatus('笔记已同步到云端 ☁');
+      });
+    }
+  }
+
+  function notesRefresh() {
+    notesRenderList();
+    notesRenderDates();
+    showSyncStatus('已刷新');
+  }
+
+  // ══ 云端同步（GitHub Gist）═
+  function notesSyncCloud(callback) {
+    var btn = document.getElementById('notes-sync-btn');
+    var offline = document.getElementById('notes-cloud-offline');
+    var synced = document.getElementById('notes-cloud-status');
+
+    // 收集本地所有笔记
+    var localAll = {};
+    try { localAll = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); } catch(e) {}
+    var allNotes = [];
+    Object.keys(localAll).forEach(function(date) {
+      allNotes = allNotes.concat(localAll[date]);
+    });
+    allNotes.sort(function(a, b) { return (a.date > b.date) ? -1 : 1; });
+
+    var payload = JSON.stringify({ notes: allNotes }, null, 2);
+
+    // 读取当前gist内容
+    fetch('https://api.github.com/gists/' + NOTES_GIST_ID, {
+      headers: { 'Accept': 'application/vnd.github+json' }
+    }).then(function(r) { return r.json(); }).then(function(gist) {
+      var token = null;
+      // 尝试从页面或localStorage获取token
+      try { token = localStorage.getItem('gh_token') || ''; } catch(e) {}
+
+      var patchUrl = 'https://api.github.com/gists/' + NOTES_GIST_ID;
+      return fetch(patchUrl, {
+        method: 'PATCH',
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          description: '致城顾问项目笔记（自动同步）',
+          files: { 'notes.json': { content: payload } }
+        })
+      });
+    }).then(function(r) {
+      if (r.ok || r.status === 200) {
+        if (offline) offline.style.display = 'none';
+        if (synced) { synced.style.display = 'inline'; synced.textContent = '✅ 云端已同步'; }
+        if (btn) { btn.textContent = '✅ 已同步'; btn.style.background = 'var(--green-light)'; btn.style.color = 'var(--green)'; }
+        setTimeout(function() {
+          if (synced) { synced.style.display = 'none'; }
+          if (btn) { btn.textContent = '☁ 同步云端'; btn.style.background = ''; btn.style.color = ''; }
+        }, 4000);
+        if (callback) callback();
+      } else {
+        throw new Error('HTTP ' + r.status);
+      }
+    }).catch(function(err) {
+      // 无token则只显示说明
+      if (offline) offline.style.display = 'inline';
+      if (offline) offline.textContent = '📴 无法访问云端（需授权）';
+      showSyncStatus('云端同步失败，请先在设置中授权 GitHub 账号');
+    });
+  }
+
+  // 页面加载时自动拉取云端
+  (function pullCloudNotes() {
+    fetch(NOTES_GIST_RAW + '?t=' + Date.now(), { cache: 'no-cache' })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data && data.notes && data.notes.length > 0) {
+          notesSaveLocal(data);
+          notesRenderList();
+          notesRenderDates();
+          var synced = document.getElementById('notes-cloud-status');
+          if (synced) { synced.style.display = 'inline'; }
+          var offline = document.getElementById('notes-cloud-offline');
+          if (offline) offline.style.display = 'none';
+        }
+      })
+      .catch(function() {});
+  })();
+
+  // DOMContentLoaded 里调用笔记渲染
+  var _origInitNotes = null;
+
+  // 页面加载时渲染笔记
+  notesRenderList();
+  notesRenderDates();
   })();
 </script>
   <!-- ══ 页脚：网页版提示 ══ -->
