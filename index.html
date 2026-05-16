@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>致城集合顾问项目 · 交付追踪台</title>
+<style>
+  :root {
+    --bg: #f4f7fb;
+    --card: #ffffff;
+    --card2: #eef3f9;
+    --border: #c8d6e8;
+    --border-light: #dde6f2;
+    --text: #1a2a3a;
+    --text-mid: #3a4f66;
+    --muted: #7a8fa6;
+    --accent: #1a56b0;
+    --accent-light: #e8f0fd;
+    --accent-mid: #3b7dd8;
+    --red: #c0392b;
+    --red-light: #fdecea;
+    --orange: #b35a00;
+    --orange-light: #fff3e0;
+    --green: #1a7a4a;
+    --green-light: #e8f7ef;
+    --blue1: #1565c0;
+    --blue2: #1976d2;
+    --blue3: #2196f3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 32px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 14px; }
+  .header-left { border-left: 4px solid var(--accent); padding-left: 14px; }
+  .header-left h1 { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .header-left .subtitle { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .phase-badge { display: inline-block; padding: 4px 14px; border-radius: 3px; font-size: 12px; font-weight: 600; border: 1px solid; }
+  .phase-badge.blue { background: var(--accent-light); color: var(--accent); border-color: var(--accent-mid); }
+  .phase-badge.green { background: var(--green-light); color: var(--green); border-color: var(--green); }
+  .header-meta { font-size: 11px; color: var(--muted); }
+
+  /* ── KPI Row ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  @media (max-width: 700px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 18px 20px; position: relative; overflow: hidden; }
+  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .kpi.blue::before { background: var(--blue1); }
+  .kpi.purple::before { background: var(--blue3); }
+  .kpi.orange::before { background: var(--orange); }
+  .kpi.green::before { background: var(--green); }
+  .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .kpi-value { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .kpi-value.blue { color: var(--blue1); }
+  .kpi-value.purple { color: var(--blue3); }
+  .kpi-value.orange { color: var(--orange); }
+  .kpi-value.green { color: var(--green); }
+  .kpi-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Progress ── */
+  .progress-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 20px 24px; margin-bottom: 24px; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .progress-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .progress-stat { font-size: 12px; color: var(--muted); }
+  .progress-stat strong { color: var(--blue1); font-weight: 700; }
+  .progress-track { height: 8px; background: var(--card2); border-radius: 4px; overflow: hidden; border: 1px solid var(--border-light); }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue1) 0%, var(--blue3) 100%); border-radius: 4px; transition: width 0.7s ease; width: 0%; }
+  .progress-legend { display: flex; gap: 20px; margin-top: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .legend-sq { width: 10px; height: 10px; border-radius: 2px; }
+  .legend-sq.done { background: var(--green); }
+  .legend-sq.todo { background: var(--border); }
+
+  /* ── Section Title ── */
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border-light); display: flex; align-items: center; gap: 8px; }
+  .section-title .num { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+
+  /* ── Two Col ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* ── Card ── */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 20px 22px; margin-bottom: 16px; }
+
+  /* ── Phase Header ── */
+  .phase-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .phase-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .phase-dates { font-size: 11px; color: var(--muted); }
+  .phase-count-badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: var(--accent-light); color: var(--accent); border: 1px solid var(--border-light); }
+
+  /* ── Del Item ── */
+  .del-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
+  .del-item:last-child { border-bottom: none; }
+  .del-check { width: 17px; height: 17px; border: 2px solid var(--border); border-radius: 3px; cursor: pointer; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; background: #fff; transition: all 0.15s; }
+  .del-check.checked { background: var(--blue1); border-color: var(--blue1); }
+  .del-check.checked::after { content: '✓'; color: #fff; font-size: 10px; font-weight: 700; }
+  .del-body { flex: 1; }
+  .del-name { font-size: 13px; color: var(--text); line-height: 1.45; }
+  .del-name.checked { text-decoration: line-through; color: var(--muted); }
+  .del-tags { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .tag { font-size: 10px; padding: 2px 7px; border-radius: 3px; font-weight: 600; }
+  .tag.core { background: var(--red-light); color: var(--red); border: 1px solid #f5c6c2; }
+  .tag.need { background: var(--orange-light); color: var(--orange); border: 1px solid #ffe0b2; }
+  .tag.fmt { background: var(--accent-light); color: var(--accent); border: 1px solid var(--border-light); }
+  .tag.due { background: var(--card2); color: var(--muted); border: 1px solid var(--border); }
+
+  /* ── Week Tasks ── */
+  .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border-light); }
+  .task-item:last-child { border-bottom: none; }
+  .task-body { flex: 1; }
+  .task-name { font-size: 13px; line-height: 1.45; }
+  .task-name.checked { text-decoration: line-through; color: var(--muted); }
+  .task-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .pri { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 700; }
+  .pri.p0 { background: var(--red-light); color: var(--red); }
+  .pri.p1 { background: var(--orange-light); color: var(--orange); }
+  .pri.p2 { background: var(--card2); color: var(--muted); }
+
+  /* ── Risk ── */
+  .risk-item { display: flex; align-items: flex-start; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border-light); }
+  .risk-item:last-child { border-bottom: none; }
+  .risk-level { font-size: 10px; padding: 2px 7px; border-radius: 3px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .risk-level.high { background: var(--red-light); color: var(--red); border: 1px solid #f5c6c2; }
+  .risk-level.med { background: var(--orange-light); color: var(--orange); border: 1px solid #ffe0b2; }
+  .risk-level.low { background: var(--green-light); color: var(--green); border: 1px solid #c8e6d4; }
+  .risk-body { flex: 1; }
+  .risk-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .risk-desc { font-size: 12px; color: var(--muted); }
+  .risk-fix { font-size: 11px; color: var(--blue1); margin-top: 3px; }
+
+  /* ── Timeline ── */
+  .timeline { position: relative; margin-bottom: 6px; }
+  .timeline-head { display: flex; border-bottom: 2px solid var(--border-light); margin-bottom: 8px; padding-left: 140px; }
+  .timeline-month { flex: 1; text-align: center; font-size: 11px; color: var(--muted); padding-bottom: 8px; font-weight: 600; }
+  .timeline-month.active { color: var(--blue1); border-bottom: 2px solid var(--blue1); margin-bottom: -2px; }
+  .timeline-grid { position: relative; height: 58px; padding-left: 140px; }
+  .phase-bar { position: absolute; height: 24px; border-radius: 4px; display: flex; align-items: center; padding: 0 10px; font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; cursor: pointer; transition: opacity 0.2s; }
+  .phase-bar:hover { opacity: 0.8; }
+  .phase-bar.phase1 { top: 3px; background: var(--accent-light); border: 1px solid var(--accent-mid); color: var(--blue1); }
+  .phase-bar.phase2 { top: 31px; background: #e8f0fd; border: 1px solid var(--blue3); color: var(--blue3); }
+  .today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--red); z-index: 10; opacity: 0.8; }
+  .today-line::after { content: '今天'; position: absolute; top: -18px; left: -12px; font-size: 10px; color: var(--red); font-weight: 700; white-space: nowrap; }
+  .ms-list { margin-top: 10px; }
+  .ms-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border-light); }
+  .ms-item:last-child { border-bottom: none; }
+  .ms-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .ms-dot.done { background: var(--green); }
+  .ms-dot.now { background: var(--blue1); }
+  .ms-dot.todo { background: var(--border); }
+  .ms-date { font-size: 11px; color: var(--muted); min-width: 56px; }
+  .ms-text { font-size: 13px; }
+  .ms-text.done { text-decoration: line-through; color: var(--muted); }
+
+  /* ── Notes ── */
+  textarea { width: 100%; background: var(--card2); border: 1px solid var(--border); border-radius: 4px; padding: 12px; color: var(--text); font-size: 13px; font-family: inherit; resize: vertical; min-height: 96px; }
+  textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+  textarea::placeholder { color: var(--muted); }
+
+  /* ── Footer ── */
+  .footer { text-align: center; font-size: 11px; color: var(--muted); padding: 20px 0 8px; border-top: 1px solid var(--border-light); margin-top: 8px; }
+
+  /* ── Animations ── */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .a { animation: fadeUp 0.35s ease forwards; opacity: 0; }
+  .d1 { animation-delay: 0.05s; }
+  .d2 { animation-delay: 0.1s; }
+  .d3 { animation-delay: 0.15s; }
+  .d4 { animation-delay: 0.2s; }
+
+  /* ── Attach6 grid ── */
+  .a6-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .a6-cell { border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); padding: 8px 10px; }
+  .a6-cell:nth-child(even) { border-right: none; }
+  .a6-cell .del-name { font-size: 12px; }
+  .a6-cell .tag { font-size: 9px; }
+
+  /* Label column for timeline */
+  .timeline-labels { position: absolute; left: 0; top: 0; width: 136px; }
+  .label-row { height: 58px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
+  .label-text { font-size: 10px; color: var(--muted); text-align: right; }
+
+  /* ── File Upload ── */
+  .file-wrap { margin-top: 8px; }
+  .file-toggle { background: none; border: 1px solid var(--border); border-radius: 3px;
+    padding: 3px 10px; font-size: 11px; cursor: pointer; color: var(--accent); font-family: inherit; }
+  .file-toggle:hover { background: var(--accent-light); }
+  .file-toggle.has-file { color: var(--green); border-color: var(--green); }
+  .file-area { margin-top: 6px; padding: 10px 12px; background: var(--card2); border-radius: 4px;
+    border: 1px dashed var(--border); display: none; }
+  .file-area.show { display: block; }
+  .file-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .file-title { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .file-browse { font-size: 11px; padding: 4px 12px; background: var(--accent); color: #fff;
+    border: none; border-radius: 3px; cursor: pointer; font-family: inherit; }
+  .file-browse:hover { opacity: 0.85; }
+  .file-input { display: none; }
+  .file-list { display: flex; flex-direction: column; gap: 5px; }
+  .file-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: #fff;
+    border-radius: 4px; border: 1px solid var(--border-light); font-size: 12px; }
+  .file-icon { font-size: 16px; flex-shrink: 0; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; }
+  .file-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .file-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .file-act { background: none; border: 1px solid var(--border); border-radius: 3px;
+    padding: 3px 8px; font-size: 10px; cursor: pointer; color: var(--text-mid); font-family: inherit; }
+  .file-act:hover { background: var(--card2); }
+  .file-act.del { color: var(--red); border-color: #f5c6c2; }
+  .file-act.del:hover { background: var(--red-light); }
+  .file-empty { font-size: 11px; color: var(--muted); font-style: italic; padding: 4px 0; }
+  .file-msg { font-size: 11px; margin-top: 4px; }
+  .file-msg.ok { color: var(--green); }
+  .file-msg.err { color: var(--red); }
+
+  
+  /* ── Export / Import ── */
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .sync-buttons { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .btn-sync { font-size: 11px; padding: 4px 12px; border-radius: 3px; cursor: pointer;
+    font-family: inherit; border: 1px solid; transition: all 0.15s; }
+  .btn-export { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-export:hover { opacity: 0.85; }
+  .btn-import { background: #fff; color: var(--accent); border-color: var(--accent-mid); }
+  .btn-import:hover { background: var(--accent-light); }
+  .sync-status { font-size: 10px; color: var(--green); min-height: 14px; text-align: right; }
+  .file-import-input { display: none; }
+  .tips-line { font-size: 10px; color: var(--muted); text-align: center; margin-top: 6px; }
+
+  
+  /* ── Smart Planner ── */
+  .plan-tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 2px solid var(--border-light); padding-bottom: 0; }
+  .plan-tab { background: none; border: none; padding: 7px 14px; font-size: 12px; font-family: inherit;
+    cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px;
+    border-radius: 4px 4px 0 0; transition: all 0.15s; font-weight: 500; }
+  .plan-tab:hover { color: var(--text); background: var(--card2); }
+  .plan-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+  .plan-panel { display: block; }
+  .plan-panel.hidden { display: none; }
+  .plan-tips { padding: 10px 14px; background: var(--accent-light); border-radius: 5px;
+    border-left: 3px solid var(--accent); font-size: 12px; color: var(--text); line-height: 1.6; margin-bottom: 12px; }
+  .tips-tomorrow { background: #fff8e6; border-left-color: var(--orange); }
+  .plan-items { display: flex; flex-direction: column; gap: 8px; }
+  .plan-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
+    background: var(--card2); border-radius: 5px; border: 1px solid var(--border-light);
+    transition: all 0.15s; }
+  .plan-item:hover { border-color: var(--accent-mid); }
+  .plan-item.done { opacity: 0.6; }
+  .plan-item.done .pi-text { text-decoration: line-through; color: var(--muted); }
+  .pi-check { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 50%;
+    cursor: pointer; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center;
+    justify-content: center; background: #fff; transition: all 0.15s; }
+  .pi-check.checked { background: var(--green); border-color: var(--green); }
+  .pi-check.checked::after { content: '✓'; color: #fff; font-size: 10px; font-weight: 700; }
+  .pi-body { flex: 1; }
+  .pi-text { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.5; }
+  .pi-meta { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+  .pi-deadline { font-size: 10px; padding: 1px 7px; border-radius: 3px; font-weight: 600; }
+  .pi-deadline.urgent { background: var(--red-light); color: var(--red); border: 1px solid #f5c6c2; }
+  .pi-deadline.soon { background: var(--orange-light); color: var(--orange); border: 1px solid #ffe0b2; }
+  .pi-deadline.ok { background: var(--card2); color: var(--muted); border: 1px solid var(--border); }
+  .pi-ref { font-size: 10px; color: var(--accent); padding: 1px 6px; background: var(--accent-light);
+    border-radius: 3px; border: 1px solid var(--border-light); }
+  .plan-milestone { margin-top: 14px; padding: 12px 14px; background: #fff8e6; border-radius: 5px;
+    border: 1px solid #ffe0b2; }
+  .plan-milestone-label { font-size: 11px; font-weight: 700; color: var(--orange); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 5px; }
+  .plan-milestone-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .plan-urgency { margin-top: 12px; padding: 10px 14px; background: var(--red-light); border-radius: 5px;
+    border: 1px solid #f5c6c2; }
+  .plan-urgency-label { font-size: 11px; font-weight: 700; color: var(--red); margin-bottom: 6px; }
+  .plan-urgency-text { font-size: 12px; color: var(--text); line-height: 1.6; }
+  .plan-done-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; margin-top: 10px; }
+  .plan-section-label { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 8px;
+    margin-top: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .plan-section-label:first-of-type { margin-top: 0; }
+  .week-item { display: flex; align-items: center; gap: 10px; padding: 9px 0;
+    border-bottom: 1px solid var(--border-light); }
+  .week-item:last-child { border-bottom: none; }
+  .week-date { font-size: 11px; color: var(--muted); min-width: 56px; font-weight: 500; }
+  .week-date.today { color: var(--accent); font-weight: 700; }
+  .week-text { font-size: 13px; flex: 1; }
+  .week-done { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .week-done.done { background: var(--green); }
+  .week-done.todo { background: var(--border); }
+  .week-done.urgent { background: var(--red); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header a d1">
+    <div class="header-left">
+      <h1>致城集合顾问项目 · 交付追踪台</h1>
+      <div class="subtitle">订一晚（上海）教育科技有限公司 × 四川致城集合商业管理有限公司 · 核心顾问：谢爽</div>
+    </div>
+    <div class="header-right">
+      <span class="phase-badge blue" id="status-badge">⏳ 距启动 2 天</span>
+      <div class="sync-buttons">
+        <button class="btn-sync btn-export" onclick="exportAll()">📥 导出全部数据</button>
+        <button class="btn-sync btn-import" onclick="document.getElementById('import-input').click()">📤 导入数据文件</button>
+        <input type="file" class="file-import-input" id="import-input" accept=".json" onchange="importAll(this)">
+      </div>
+      <div class="sync-status" id="sync-status"></div>
+      <div class="header-meta">服务期：2026.5.18 — 2026.8.18（含税服务费）</div>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row a d1">
+    <div class="kpi purple">
+      <div class="kpi-label">核心交付物</div>
+      <div class="kpi-value purple" id="kpi-core">20 项</div>
+      <div class="kpi-sub">合同明确约定 · 缺一不可验收</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">必要交付物</div>
+      <div class="kpi-value blue" id="kpi-need">11 项</div>
+      <div class="kpi-sub">支撑性交付 · 同样需完成</div>
+    </div>
+    <div class="kpi orange">
+      <div class="kpi-label">本周行动</div>
+      <div class="kpi-value orange" id="kpi-week">0 / 7</div>
+      <div class="kpi-sub">P0 最紧急 · 5.18前必须搞定</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">整体进度</div>
+      <div class="kpi-value green" id="kpi-pct">0%</div>
+      <div class="kpi-sub">核心交付物完成率</div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap a d2">
+    <div class="progress-header">
+      <div class="progress-title">核心交付物完成进度</div>
+      <div class="progress-stat"><strong id="pct-num">0</strong> / 20 项已完成</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="pct-bar"></div>
+    </div>
+    <div class="progress-legend">
+      <div class="legend-item"><div class="legend-sq done"></div>已完成</div>
+      <div class="legend-item"><div class="legend-sq todo"></div>待开始</div>
+    </div>
+  </div>
+
+  <!-- Two col: Risk + Week -->
+  <div class="two-col a d2">
+    <!-- Risk -->
+    <div class="card">
+      <div class="section-title"><div class="num">!</div>风险监控</div>
+      <div class="risk-item">
+        <div class="risk-level high">高</div>
+        <div class="risk-body">
+          <div class="risk-title">SOP四件套缺件交付</div>
+          <div class="risk-desc">只交Word版，缺张贴版/检查清单/考核建议</div>
+          <div class="risk-fix">→ 合同明确：四件缺一不可，否则无法验收</div>
+        </div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-level med">中</div>
+        <div class="risk-body">
+          <div class="risk-title">8个线下服务日无法举证</div>
+          <div class="risk-desc">每次到店没有书面记录</div>
+          <div class="risk-fix">→ 每次到店必须发访谈/巡检记录给甲方留痕</div>
+        </div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-level med">中</div>
+        <div class="risk-body">
+          <div class="risk-title">第二阶段复盘会断档</div>
+          <div class="risk-desc">某周忘记开会，无书面纪要</div>
+          <div class="risk-fix">→ 设手机日历提醒，每周五前发纪要</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Smart Daily Planner -->
+    <div class="card">
+      <div class="section-title">
+        <div class="num" style="background:#7a5fa6">☀</div>
+        每日行动规划
+        <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:4px;">基于交付节点自动生成</span>
+      </div>
+
+      <!-- Tab: Today / Tomorrow -->
+      <div class="plan-tabs">
+        <button class="plan-tab active" id="tab-today" onclick="switchPlanTab('today')">📅 今天 · <span id="tab-today-label"></span></button>
+        <button class="plan-tab" id="tab-tomorrow" onclick="switchPlanTab('tomorrow')">🚀 明天行动建议</button>
+        <button class="plan-tab" id="tab-week" onclick="switchPlanTab('week')">📆 本周节点</button>
+      </div>
+
+      <!-- Today Panel -->
+      <div class="plan-panel" id="panel-today">
+        <div class="plan-tips" id="today-tip"></div>
+        <div class="plan-items" id="today-items"></div>
+        <div class="plan-milestone" id="today-milestone"></div>
+        <div class="plan-done" id="today-done-area"></div>
+      </div>
+
+      <!-- Tomorrow Panel -->
+      <div class="plan-panel hidden" id="panel-tomorrow">
+        <div class="plan-tips tips-tomorrow" id="tomorrow-tip"></div>
+        <div class="plan-items" id="tomorrow-items"></div>
+        <div class="plan-urgency" id="tomorrow-urgency"></div>
+      </div>
+
+      <!-- Week Panel -->
+      <div class="plan-panel hidden" id="panel-week">
+        <div class="plan-items" id="week-items"></div>
+      </div>
+    </div>
+
+    <!-- Week Tasks -->
+    <div class="card">
+      <div class="section-title"><div class="num">▶</div>本周紧急行动（5.18前）</div>
+      <div class="task-item">
+        <div class="del-check" data-task="t1"></div>
+        <div class="task-body">
+          <div class="task-name" data-for="t1">确认甲方项目负责人，交换联系方式</div>
+          <div class="task-meta"><span class="tag due">5月18日前</span><span class="pri p0">P0</span></div>
+        </div>
+      </div>
+      <div class="task-item">
+        <div class="del-check" data-task="t2"></div>
+        <div class="task-body">
+          <div class="task-name" data-for="t2">发出《资料清单》（附件五），索取经营数据</div>
+          <div class="task-meta"><span class="tag due">5月18日</span><span class="pri p0">P0</span></div>
+        </div>
+      </div>
+      <div class="task-item">
+        <div class="del-check" data-task="t3"></div>
+        <div class="task-body">
+          <div class="task-name" data-for="t3">建项目沟通群（飞书/企微），统一文件归档</div>
+          <div class="task-meta"><span class="tag due">5月18日</span><span class="pri p0">P0</span></div>
+        </div>
+      </div>
+      <div class="task-item">
+        <div class="del-check" data-task="t4"></div>
+        <div class="task-body">
+          <div class="task-name" data-for="t4">安排第一次到店日期（第1周至少2次）</div>
+          <div class="task-meta"><span class="tag due">5月18-24日</span><span class="pri p0">P0</span></div>
+        </div>
+      </div>
+      <div class="task-item">
+        <div class="del-check" data-task="t5"></div>
+        <div class="task-body">
+          <div class="task-name" data-for="t5">准备《项目启动计划及资料清单》（启动后3天内交）</div>
+          <div class="task-meta"><span class="tag due">5月21日前</span><span class="pri p0">P0</span></div>
+        </div>
+      </div>
+      <div class="task-item">
+        <div class="del-check" data-task="t6"></div>
+        <div class="task-body">
+          <div class="task-name" data-for="t6">准备访谈提纲（7个岗位 × 5个核心问题）</div>
+          <div class="task-meta"><span class="tag due">5月21日前</span><span class="pri p1">P1</span></div>
+        </div>
+      </div>
+      <div class="task-item">
+        <div class="del-check" data-task="t7"></div>
+        <div class="task-body">
+          <div class="task-name" data-for="t7">确认发票类目（咨询服务费 vs 培训服务费）</div>
+          <div class="task-meta"><span class="tag due">5月内</span><span class="pri p2">P2</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="card a d3">
+    <div class="section-title"><div class="num">⌚</div>项目时间轴</div>
+    <div class="timeline">
+      <div class="timeline-head">
+        <div class="timeline-month active">5月</div>
+        <div class="timeline-month">6月</div>
+        <div class="timeline-month">7月</div>
+        <div class="timeline-month">8月</div>
+      </div>
+      <div class="timeline-grid" id="tl-grid">
+        <div class="today-line" id="today-line" style="left:calc(18/92*100%)"></div>
+        <div class="phase-bar phase1" id="bar1">🔵 第一阶段 · 诊断共识（5.18-6.17）</div>
+        <div class="phase-bar phase2" id="bar2">🟣 第二阶段 · 陪跑落地（6.18-8.18）</div>
+      </div>
+    </div>
+    <div class="ms-list">
+      <div class="ms-item" id="ms1">
+        <div class="ms-dot done" id="msd1"></div>
+        <div class="ms-date">5月16日</div>
+        <div class="ms-text" id="mst1">合同签署 + 附件确认</div>
+      </div>
+      <div class="ms-item" id="ms2">
+        <div class="ms-dot now" id="msd2"></div>
+        <div class="ms-date">5月18日</div>
+        <div class="ms-text" id="mst2">项目启动会 + 资料清单发出</div>
+      </div>
+      <div class="ms-item" id="ms3">
+        <div class="ms-dot todo" id="msd3"></div>
+        <div class="ms-date">5月21日</div>
+        <div class="ms-text" id="mst3">《项目启动计划》3天内必交 ⚡</div>
+      </div>
+      <div class="ms-item" id="ms4">
+        <div class="ms-dot todo" id="msd4"></div>
+        <div class="ms-date">6月17日</div>
+        <div class="ms-text" id="mst4">第一阶段复盘会 + 验收确认表签字</div>
+      </div>
+      <div class="ms-item" id="ms5">
+        <div class="ms-dot todo" id="msd5"></div>
+        <div class="ms-date">8月15日</div>
+        <div class="ms-text" id="mst5">结项复盘报告提交</div>
+      </div>
+      <div class="ms-item" id="ms6">
+        <div class="ms-dot todo" id="msd6"></div>
+        <div class="ms-date">8月18日</div>
+        <div class="ms-text" id="mst6">结项复盘会 + 结项验收确认表签字</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 1 -->
+  <div class="card a d3">
+    <div class="phase-head">
+      <div>
+        <div class="phase-name">🔵 第一阶段交付物（2026.5.18 — 6.17）</div>
+        <div class="phase-dates">线下诊断与共识阶段 · 累计 ≥8 个有效线下服务日</div>
+      </div>
+      <div class="phase-count-badge" id="p1-badge">0 / 9 项</div>
+    </div>
+
+    <div class="del-item">
+      <div class="del-check" data-del="p1-1"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p1-1">《项目启动计划及资料清单》</div>
+        <div class="del-tags">
+          <span class="tag core">核心</span>
+          <span class="tag fmt">Word</span>
+          <span class="tag due">⚡ 启动后3工作日内（最紧急）</span>
+        </div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p1-2"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p1-2">《酒店板块经营诊断报告》</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Word/PPT</span><span class="tag due">第一阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p1-3"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p1-3">《全门店巡检及全岗位访谈记录》</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Word/表格</span><span class="tag due">累计≥8个线下服务日</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p1-4"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p1-4">《酒店核心业务流程图》</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Visio/PPT/Word</span><span class="tag due">第一阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p1-5"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p1-5">《岗位职责边界表》（收益/运营/前台/管家/保洁/维修）</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Word/Excel</span><span class="tag due">第一阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p1-6"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p1-6">《问题清单与整改优先级表》</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Excel</span><span class="tag due">第一阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p1-7"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p1-7">《门店耗品库存管理现状诊断及问题清单》</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Word/Excel</span><span class="tag due">第一阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p1-8"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p1-8">《酒店经营复盘会机制》</div>
+        <div class="del-tags"><span class="tag need">必要</span><span class="tag fmt">Word</span><span class="tag due">第一阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p1-9"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p1-9">《AI提效场景清单》（≥5个可落地场景）</div>
+        <div class="del-tags"><span class="tag need">必要</span><span class="tag fmt">Word/飞书</span><span class="tag due">第一阶段内</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="card a d4">
+    <div class="phase-head">
+      <div>
+        <div class="phase-name">🟣 第二阶段交付物（2026.6.18 — 8.18）</div>
+        <div class="phase-dates">线上+线下陪跑落地阶段 · 每周1次复盘会，每月≥4次</div>
+      </div>
+      <div class="phase-count-badge" id="p2-badge">0 / 11 项</div>
+    </div>
+
+    <div class="del-item">
+      <div class="del-check" data-del="p2-1"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-1">《一线岗位标准化作业SOP》⭐ 四件套（Word完整版 + 1页张贴简化版 + 执行检查清单 + 考核建议方案）</div>
+        <div class="del-tags">
+          <span class="tag core">核心 · 最重点</span>
+          <span class="tag fmt">Word/Excel</span>
+          <span class="tag due">第二阶段内</span>
+        </div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p2-2"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-2">《入住/住中/退房/客诉/好评邀约服务标准》</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Word</span><span class="tag due">第二阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p2-3"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-3">《SOP执行检查机制及绩效挂钩建议》</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Word/Excel</span><span class="tag due">第二阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p2-4"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-4">《收益部与运营部协同机制》（≥3类高频协同场景）</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Word</span><span class="tag due">第二阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p2-5"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-5">管理层培训（≥2场）含课件 + 签到记录 + 培训纪要</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">PPT+签到表+纪要</span><span class="tag due">第二阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p2-6"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-6">一线/骨干培训（≥2场）含课件 + 签到记录 + 培训纪要</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">PPT+签到表+纪要</span><span class="tag due">第二阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p2-7"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-7">《AI工具落地操作手册》（评价分析/差评归因/SOP生成/复盘纪要/话术/巡检/问答库）</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Word</span><span class="tag due">第二阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p2-8"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-8">《门店耗品库存管理流程及工具包》（入库/出库/盘点/对账/试运行记录）</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">Excel/飞书</span><span class="tag due">第二阶段内</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p2-9"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-9">《阶段性结项复盘报告》</div>
+        <div class="del-tags"><span class="tag core">核心</span><span class="tag fmt">PPT/Word</span><span class="tag due">8月15日前提交</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p2-10"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-10">每周项目推进/复盘记录（每月≥4次，有书面纪要）</div>
+        <div class="del-tags"><span class="tag need">必要</span><span class="tag fmt">会议纪要</span><span class="tag due">贯穿第二阶段每周</span></div>
+      </div>
+    </div>
+    <div class="del-item">
+      <div class="del-check" data-del="p2-11"></div>
+      <div class="del-body">
+        <div class="del-name" data-for="p2-11">试运行反馈优化记录（至少完成一次合理优化）</div>
+        <div class="del-tags"><span class="tag need">必要</span><span class="tag fmt">文档版本记录</span><span class="tag due">第二阶段内</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attach 6 -->
+  <div class="card a d4">
+    <div class="phase-head">
+      <div>
+        <div class="phase-name">📦 附件六：门店耗品库存管理专项（贯穿全程）</div>
+        <div class="phase-dates">6项核心交付 + 3项必要交付</div>
+      </div>
+      <div class="phase-count-badge" id="a6-badge">0 / 9 项</div>
+    </div>
+    <div class="a6-grid">
+      <div class="a6-cell">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="del-check" data-del="a-1"></div>
+          <div>
+            <div class="del-name" data-for="a-1">《门店耗品分类及编码建议表》</div>
+            <div class="del-tags" style="margin-top:4px;"><span class="tag core">核心</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="a6-cell">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="del-check" data-del="a-2"></div>
+          <div>
+            <div class="del-name" data-for="a-2">《耗品申领及审批流程》</div>
+            <div class="del-tags" style="margin-top:4px;"><span class="tag core">核心</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="a6-cell">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="del-check" data-del="a-3"></div>
+          <div>
+            <div class="del-name" data-for="a-3">《入库登记表》《出库/领用登记表》</div>
+            <div class="del-tags" style="margin-top:4px;"><span class="tag core">核心</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="a6-cell">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="del-check" data-del="a-4"></div>
+          <div>
+            <div class="del-name" data-for="a-4">《门店耗品库存盘点表》</div>
+            <div class="del-tags" style="margin-top:4px;"><span class="tag core">核心</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="a6-cell">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="del-check" data-del="a-5"></div>
+          <div>
+            <div class="del-name" data-for="a-5">《门店耗品月度对账表》</div>
+            <div class="del-tags" style="margin-top:4px;"><span class="tag core">核心</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="a6-cell">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="del-check" data-del="a-6"></div>
+          <div>
+            <div class="del-name" data-for="a-6">《异常损耗登记及责任反馈表》</div>
+            <div class="del-tags" style="margin-top:4px;"><span class="tag need">必要</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="a6-cell">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="del-check" data-del="a-7"></div>
+          <div>
+            <div class="del-name" data-for="a-7">《门店耗品补货申请表及安全库存建议》</div>
+            <div class="del-tags" style="margin-top:4px;"><span class="tag need">必要</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="a6-cell">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="del-check" data-del="a-8"></div>
+          <div>
+            <div class="del-name" data-for="a-8">《样板店耗品库存试运行记录》</div>
+            <div class="del-tags" style="margin-top:4px;"><span class="tag core">核心</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="card">
+    <div class="section-title"><div class="num" style="background:var(--muted)">✎</div>项目笔记（本地自动保存）</div>
+    <textarea id="notes-area" placeholder="记录重要决策、甲方反馈、问题卡点、版本记录……"></textarea>
+  </div>
+
+  <div class="footer">
+    致城集合顾问项目 · 订一晚（上海）教育科技有限公司 · 核心顾问：谢爽
+    · 数据存储于本地浏览器，刷新不丢失
+    · 最后保存：<span id="last-save">—</span>
+  </div>
+</div>
+
+<script>
+// ── State ──
+const KEY = 'zhicheng-v2';
+const ALL_DEL = ['p1-1','p1-2','p1-3','p1-4','p1-5','p1-6','p1-7','p1-8','p1-9',
+                 'p2-1','p2-2','p2-3','p2-4','p2-5','p2-6','p2-7','p2-8','p2-9','p2-10','p2-11',
+                 'a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8'];
+const CORE_DEL = ['p1-1','p1-2','p1-3','p1-4','p1-5','p1-6','p1-7',
+                  'p2-1','p2-2','p2-3','p2-4','p2-5','p2-6','p2-7','p2-8','p2-9',
+                  'a-1','a-2','a-3','a-4','a-5','a-8'];
+const P1_DEL = ['p1-1','p1-2','p1-3','p1-4','p1-5','p1-6','p1-7','p1-8','p1-9'];
+const P2_DEL = ['p2-1','p2-2','p2-3','p2-4','p2-5','p2-6','p2-7','p2-8','p2-9','p2-10','p2-11'];
+const A6_DEL = ['a-1','a-2','a-3','a-4','a-5','a-6','a-7','a-8'];
+const WEEK = ['t1','t2','t3','t4','t5','t6','t7'];
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || {c:{},n:''}; }
+  catch(e) { return {c:{},n:''}; }
+}
+function save(s) {
+  s.ts = new Date().toLocaleString('zh-CN');
+  localStorage.setItem(KEY, JSON.stringify(s));
+  document.getElementById('last-save').textContent = s.ts;
+}
+
+const st = load();
+document.getElementById('notes-area').value = st.n || '';
+if(st.ts) document.getElementById('last-save').textContent = st.ts;
+
+// ── Check ──
+function check(id, checked) {
+  st.c[id] = checked;
+  const cb = document.querySelector(`.del-check[data-del="${id}"], .del-check[data-task="${id}"]`);
+  if(cb) cb.classList.toggle('checked', checked);
+  const nm = document.querySelector(`.del-name[data-for="${id}"], .task-name[data-for="${id}"]`);
+  if(nm) nm.classList.toggle('checked', checked);
+  update();
+  save(st);
+}
+
+function update() {
+  const coreDone = CORE_DEL.filter(id=>st.c[id]).length;
+  const pct = Math.round(coreDone / CORE_DEL.length * 100);
+  document.getElementById('pct-bar').style.width = pct + '%';
+  document.getElementById('pct-num').textContent = coreDone;
+  document.getElementById('kpi-pct').textContent = pct + '%';
+
+  document.getElementById('p1-badge').textContent = P1_DEL.filter(id=>st.c[id]).length + ' / 9 项';
+  document.getElementById('p2-badge').textContent = P2_DEL.filter(id=>st.c[id]).length + ' / 11 项';
+  document.getElementById('a6-badge').textContent = A6_DEL.filter(id=>st.c[id]).length + ' / 9 项';
+
+  const wDone = WEEK.filter(id=>st.c[id]).length;
+  document.getElementById('kpi-week').textContent = wDone + ' / 7';
+}
+
+// Milestones
+const milestones = [
+  {id:'ms1',dot:'msd1',txt:'mst1',date:new Date('2026-05-16')},
+  {id:'ms2',dot:'msd2',txt:'mst2',date:new Date('2026-05-18')},
+  {id:'ms3',dot:'msd3',txt:'mst3',date:new Date('2026-05-21')},
+  {id:'ms4',dot:'msd4',txt:'mst4',date:new Date('2026-06-17')},
+  {id:'ms5',dot:'msd5',txt:'mst5',date:new Date('2026-08-15')},
+  {id:'ms6',dot:'msd6',txt:'mst6',date:new Date('2026-08-18')},
+];
+const today = new Date('2026-05-16');
+milestones.forEach(m => {
+  const dot = document.getElementById(m.dot);
+  const txt = document.getElementById(m.txt);
+  if(today > m.date) {
+    dot.className = 'ms-dot done';
+    txt.classList.add('done');
+  } else if(today.toDateString() === m.date.toDateString()) {
+    dot.className = 'ms-dot now';
+  }
+});
+
+// Status badge
+const start = new Date('2026-05-18');
+const end = new Date('2026-08-18');
+const badge = document.getElementById('status-badge');
+const daysLeft = Math.ceil((start - today) / 86400000);
+if(daysLeft > 0) {
+  badge.textContent = `⏳ 距启动 ${daysLeft} 天`;
+  badge.className = 'phase-badge blue';
+} else {
+  const daysRem = Math.ceil((end - today) / 86400000);
+  badge.textContent = `🔄 进行中 · 剩余 ${daysRem} 天`;
+  badge.className = 'phase-badge green';
+}
+
+// Init checkboxes
+document.querySelectorAll('.del-check[data-del]').forEach(cb => {
+  const id = cb.dataset.del;
+  if(st.c[id]) { cb.classList.add('checked'); const n=document.querySelector(`.del-name[data-for="${id}"]`); if(n)n.classList.add('checked'); }
+  cb.addEventListener('click', () => check(id, !st.c[id]));
+});
+document.querySelectorAll('.del-check[data-task]').forEach(cb => {
+  const id = cb.dataset.task;
+  if(st.c[id]) { cb.classList.add('checked'); const n=document.querySelector(`.task-name[data-for="${id}"]`); if(n)n.classList.add('checked'); }
+  cb.addEventListener('click', () => check(id, !st.c[id]));
+});
+
+// Notes auto-save
+document.getElementById('notes-area').addEventListener('input', e => {
+  st.n = e.target.value;
+  save(st);
+});
+
+
+  // ── File Upload Logic ──
+  const FILE_KEY = 'zhicheng-v2-files';
+  const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB per file
+
+  function loadFiles() {
+    try { return JSON.parse(localStorage.getItem(FILE_KEY)) || {}; }
+    catch(e) { return {}; }
+  }
+  function saveFiles(data) {
+    try { localStorage.setItem(FILE_KEY, JSON.stringify(data)); } catch(e) { alert('存储空间不足，无法保存文件。请删除部分已上传文件后重试。'); }
+  }
+
+  function getFileIcon(name) {
+    if(name.match(/\.(doc|docx)$/i)) return '📄';
+    if(name.match(/\.(xls|xlsx)$/i)) return '📊';
+    if(name.match(/\.(ppt|pptx)$/i)) return '📋';
+    if(name.match(/\.(pdf)$/i)) return '📕';
+    if(name.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) return '🖼️';
+    if(name.match(/\.(zip|rar|7z)$/i)) return '🗜️';
+    return '📎';
+  }
+
+  function formatSize(bytes) {
+    if(bytes < 1024) return bytes + ' B';
+    if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/(1024*1024)).toFixed(2) + ' MB';
+  }
+
+  function renderFileArea(id) {
+    const wrap = document.getElementById('fwrap-' + id);
+    if(!wrap) return;
+    const area = wrap.querySelector('.file-area');
+    const toggle = wrap.querySelector('.file-toggle');
+    const filesData = loadFiles();
+    const files = filesData[id] || [];
+
+    // Update toggle button text
+    if(toggle) {
+      if(files.length > 0) {
+        toggle.textContent = '📎 ' + files.length + ' 个文件 ▲';
+        toggle.classList.add('has-file');
+      } else {
+        toggle.textContent = '📎 上传文档';
+        toggle.classList.remove('has-file');
+      }
+    }
+    if(!area) return;
+
+    if(files.length === 0) {
+      area.querySelector('.file-list').innerHTML = '<div class="file-empty">暂无上传文件，点击"选择文件"上传交付文档</div>';
+    } else {
+      area.querySelector('.file-list').innerHTML = files.map((f, idx) => `
+        <div class="file-item">
+          <div class="file-icon">${getFileIcon(f.name)}</div>
+          <div class="file-info">
+            <div class="file-name" title="${f.name}">${f.name}</div>
+            <div class="file-meta">${formatSize(f.size)} · ${new Date(f.uploadedAt).toLocaleString('zh-CN')}</div>
+          </div>
+          <div class="file-actions">
+            <button class="file-act" onclick="downloadFile('${id}',${idx})">下载</button>
+            <button class="file-act del" onclick="deleteFile('${id}',${idx})">删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  function triggerFile(id) {
+    const input = document.getElementById('finp-' + id);
+    if(input) input.click();
+  }
+
+  function handleFile(id, input) {
+    const file = input.files[0];
+    if(!file) return;
+    if(file.size > MAX_FILE_SIZE) {
+      alert('文件大小超过 3MB 限制（当前：' + formatSize(file.size) + '）。\n\n建议：压缩文件或使用外部存储链接。');
+      input.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const filesData = loadFiles();
+      if(!filesData[id]) filesData[id] = [];
+      filesData[id].push({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        data: e.target.result,  // base64 data URL
+        uploadedAt: new Date().toISOString()
+      });
+      saveFiles(filesData);
+      renderFileArea(id);
+      // Expand area
+      const area = document.getElementById('fwrap-' + id);
+      if(area) { const a = area.querySelector('.file-area'); if(a) a.classList.add('show'); }
+      input.value = '';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function downloadFile(id, idx) {
+    const filesData = loadFiles();
+    const files = filesData[id] || [];
+    if(!files[idx]) return;
+    const f = files[idx];
+    const a = document.createElement('a');
+    a.href = f.data;
+    a.download = f.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function deleteFile(id, idx) {
+    if(!confirm('确定删除此文件？')) return;
+    const filesData = loadFiles();
+    if(filesData[id]) {
+      filesData[id].splice(idx, 1);
+      if(filesData[id].length === 0) delete filesData[id];
+      saveFiles(filesData);
+      renderFileArea(id);
+    }
+  }
+
+  function toggleFileArea(id) {
+    const wrap = document.getElementById('fwrap-' + id);
+    if(!wrap) return;
+    const area = wrap.querySelector('.file-area');
+    if(!area) return;
+    area.classList.toggle('show');
+    // Update toggle text
+    const toggle = wrap.querySelector('.file-toggle');
+    if(toggle && area.classList.contains('show')) {
+      const filesData = loadFiles();
+      const n = (filesData[id]||[]).length;
+      toggle.textContent = '📎 ' + n + ' 个文件 ▲';
+    } else if(toggle) {
+      const filesData = loadFiles();
+      const n = (filesData[id]||[]).length;
+      toggle.textContent = n > 0 ? ('📎 ' + n + ' 个文件 ▼') : '📎 上传文档';
+    }
+  }
+
+  // Inject file upload areas into each deliverable item
+  function injectFileAreas() {
+    // For items with .del-body (phase 1, phase 2)
+    document.querySelectorAll('.del-item').forEach(item => {
+      const cb = item.querySelector('.del-check[data-del]');
+      if(!cb) return;
+      const id = cb.dataset.del;
+      const body = item.querySelector('.del-body');
+      if(!body) return;
+      if(document.getElementById('fwrap-' + id)) return; // already injected
+      const wrap = document.createElement('div');
+      wrap.className = 'file-wrap';
+      wrap.id = 'fwrap-' + id;
+      wrap.innerHTML = `
+        <button class="file-toggle" onclick="toggleFileArea('${id}')">📎 上传文档</button>
+        <div class="file-area">
+          <div class="file-header">
+            <div class="file-title">交付文档上传（单文件 ≤ 3MB）</div>
+            <div>
+              <button class="file-browse" onclick="triggerFile('${id}')">选择文件</button>
+              <input type="file" class="file-input" id="finp-${id}" onchange="handleFile('${id}', this)">
+            </div>
+          </div>
+          <div class="file-list"><div class="file-empty">暂无上传文件，点击"选择文件"上传交付文档</div></div>
+        </div>
+      `;
+      body.appendChild(wrap);
+      renderFileArea(id);
+    });
+    // For Attachment 6 grid items (different DOM structure)
+    document.querySelectorAll('.a6-cell').forEach(cell => {
+      const cb = cell.querySelector('.del-check[data-del]');
+      if(!cb) return;
+      const id = cb.dataset.del;
+      if(document.getElementById('fwrap-' + id)) return;
+      // Find the inner div that contains del-name and del-tags
+      const inner = cell.querySelector('div > div') || cell;
+      const wrap = document.createElement('div');
+      wrap.className = 'file-wrap';
+      wrap.id = 'fwrap-' + id;
+      wrap.style.marginTop = '6px';
+      wrap.innerHTML = `
+        <button class="file-toggle" onclick="toggleFileArea('${id}')">📎 上传</button>
+        <div class="file-area">
+          <div class="file-header">
+            <div class="file-title">交付文档（≤ 3MB）</div>
+            <div>
+              <button class="file-browse" onclick="triggerFile('${id}')">选择文件</button>
+              <input type="file" class="file-input" id="finp-${id}" onchange="handleFile('${id}', this)">
+            </div>
+          </div>
+          <div class="file-list"><div class="file-empty">暂无文件</div></div>
+        </div>
+      `;
+      inner.appendChild(wrap);
+      renderFileArea(id);
+    });
+  }
+
+
+  // Init Smart Planner
+  
+  // ── Smart Daily Planner ──
+  const PLAN_KEY = 'zhicheng-v2-plan';
+  const PHASE1_END = new Date('2026-06-17');
+  const PHASE2_END = new Date('2026-08-18');
+  const TODAY = new Date('2026-05-16');
+
+  // 定义关键里程碑（日期, 名称, 关联交付项）
+  const MILESTONES = [
+    { date:'2026-05-18', label:'项目正式启动', type:'start', icon:'🚀',
+      desc:'发出《项目启动计划及资料清单》，确认甲方负责人、建项目群',
+      ref:'p1-1', urgent:true },
+    { date:'2026-05-21', label:'启动计划提交截止', type:'deadline', icon:'⚡',
+      desc:'《项目启动计划及资料清单》3个工作日内必须提交，否则违约',
+      ref:'p1-1', urgent:true },
+    { date:'2026-05-24', label:'第一周线下服务日', type:'onsite', icon:'🏨',
+      desc:'第1周至少2次到店，启动访谈与巡检，同步收集经营数据',
+      ref:'p1-3', urgent:true },
+    { date:'2026-05-31', label:'第一周复盘会', type:'review', icon:'📋',
+      desc:'召开本周复盘会，发出访谈/巡检记录给甲方',
+      ref:'p1-8', urgent:false },
+    { date:'2026-06-07', label:'第二周线下服务日', type:'onsite', icon:'🏨',
+      desc:'继续全岗位访谈，完成≥4次线下服务日',
+      ref:'p1-3', urgent:false },
+    { date:'2026-06-14', label:'第三/四周线下服务日', type:'onsite', icon:'🏨',
+      desc:'补足8次线下服务日缺口，准备诊断报告',
+      ref:'p1-3', urgent:false },
+    { date:'2026-06-17', label:'第一阶段验收', type:'phase', icon:'✅',
+      desc:'提交诊断报告 + 全套交付物，第一阶段复盘会，甲方签字确认',
+      ref:'p1-2', urgent:true },
+    { date:'2026-07-15', label:'SOP核心交付截止', type:'deadline', icon:'📄',
+      desc:'《一线岗位SOP四件套》需在第二阶段中期前完成（8月18日验收）',
+      ref:'p2-1', urgent:false },
+    { date:'2026-08-15', label:'结项报告提交', type:'deadline', icon:'📕',
+      desc:'提交《阶段性结项复盘报告》',
+      ref:'p2-9', urgent:true },
+    { date:'2026-08-18', label:'项目结项验收', type:'phase', icon:'🏁',
+      desc:'第二阶段复盘会 + 结项验收确认表签字',
+      ref:'p2-9', urgent:true },
+  ];
+
+  // 明天行动建议（根据合同交付节点倒推）
+  const TOMORROW_ACTIONS = {
+    '2026-05-17': {
+      tip: '明天（5月18日）项目正式启动！今天必须完成以下准备，否则将直接影响启动节点。',
+      urgency: '⚠️ 明天是项目第一天，以下事项必须在今天下班前确认，否则明天陷入被动：',
+      items: [
+        { text:'确认甲方项目负责人，获取手机号和微信，拉项目沟通群', ref:'合同第1条', deadline:'今天下班前', urgency:'urgent' },
+        { text:'起草《项目启动计划及资料清单》（明天必须发出！）', ref:'p1-1', deadline:'今天下班前', urgency:'urgent' },
+        { text:'发出资料清单，索取：近3个月营收数据、OTA后台截图、门店平面图、员工名单', ref:'合同附件五', deadline:'明天上午', urgency:'urgent' },
+        { text:'安排5月18-24日第一次到店日期（至少2次）', ref:'合同第4条', deadline:'今天', urgency:'soon' },
+        { text:'准备访谈提纲：前台/管家/收益/运营/店长各5个核心问题', ref:'合同第4条', deadline:'明天到店前', urgency:'soon' },
+      ]
+    },
+    '2026-05-18': {
+      tip: '今天是项目第一天！启动计划必须在3个工作日内（5月21日前）提交，否则合同违约。',
+      urgency: '📌 关键提醒：《项目启动计划》必须在5月21日（后天）前提交，今天是最后准备机会！',
+      items: [
+        { text:'发出《项目启动计划及资料清单》给甲方', ref:'p1-1', deadline:'今天必须', urgency:'urgent' },
+        { text:'到店：启动第一次访谈（店长+收益负责人）', ref:'p1-3', deadline:'今天', urgency:'urgent' },
+        { text:'确认甲方拉入项目群，统一文件归档目录', ref:'合同第1条', deadline:'今天', urgency:'soon' },
+        { text:'收集门店基础数据：房间数/房型/均价/OCC历史', ref:'合同附件五', deadline:'今天', urgency:'soon' },
+      ]
+    },
+    'default': {
+      tip: '根据合同交付节点，以下是本周最关键的行动建议：',
+      urgency: '',
+      items: [
+        { text:'确认本周累计完成≥2次线下服务日（访谈+巡检）', ref:'合同第4条 ≥8次', deadline:'本周', urgency:'urgent' },
+        { text:'跟进甲方提交经营数据，推进诊断报告', ref:'p1-2', deadline:'第一阶段内', urgency:'soon' },
+        { text:'每周五前发出本周复盘纪要', ref:'合同第7条', deadline:'每周五', urgency:'soon' },
+      ]
+    }
+  };
+
+  // 今日待办（根据阶段生成）
+  const TODAY_TASKS_PHASE1 = [
+    { text:'确认甲方项目负责人联系方式，建项目沟通群', ref:'合同第1条', deadline:'今天', urgency:'urgent' },
+    { text:'起草《项目启动计划及资料清单》', ref:'p1-1', deadline:'今天下班前', urgency:'urgent' },
+    { text:'发出资料清单，索取经营数据', ref:'合同附件五', deadline:'今天', urgency:'urgent' },
+    { text:'安排第一次到店日期（5月18-24日间，≥2次）', ref:'合同第4条', deadline:'今天', urgency:'soon' },
+    { text:'准备7个岗位的访谈提纲', ref:'合同第4条', deadline:'今天', urgency:'soon' },
+  ];
+
+  function getDateStr(d) { return d.toISOString().slice(0,10); }
+
+  function daysUntil(dateStr) {
+    const target = new Date(dateStr);
+    const diff = Math.ceil((target - TODAY) / 86400000);
+    return diff;
+  }
+
+  function renderPlan() {
+    renderToday();
+    renderTomorrow();
+    renderWeek();
+  }
+
+  function renderToday() {
+    const label = document.getElementById('tab-today-label');
+    if(label) label.textContent = getDateStr(TODAY).slice(5).replace('-','月') + '日';
+
+    const tip = document.getElementById('today-tip');
+    const items = document.getElementById('today-items');
+    const milestone = document.getElementById('today-milestone');
+    const doneArea = document.getElementById('today-done-area');
+    const planData = loadPlanData();
+
+    // 今日提示语
+    const daysSinceStart = daysUntil('2026-05-18');
+    if (daysSinceStart > 0) {
+      tip.innerHTML = '📋 项目尚未启动（5月18日正式开始）。今天全力完成启动前准备，确保明天顺利开局！';
+    } else if (daysSinceStart === 0) {
+      tip.innerHTML = '🚀 <b>今天是项目第一天！</b>启动计划必须在3天内（5月21日前）发出，否则违约！';
+    } else {
+      const phase1Days = daysUntil('2026-06-17');
+      tip.innerHTML = `📋 当前处于第一阶段 · 距阶段验收还有 <b>${Math.max(0,phase1Days)} 天</b> · 需完成≥8次线下服务日`;
+    }
+
+    // 今日任务
+    let html = '';
+    const todayTasks = getTodayTasks();
+    if(todayTasks.length > 0) {
+      html += '<div class="plan-section-label">今日待办</div>';
+      todayTasks.forEach(task => {
+        const done = planData.todayDone && planData.todayDone[task.ref];
+        const dlClass = task.urgency === 'urgent' ? 'urgent' : (task.urgency === 'soon' ? 'soon' : 'ok');
+        html += `<div class="plan-item${done?' done':''}">
+          <div class="pi-check${done?' checked':''}" data-pi="${task.ref}" onclick="togglePlanItem('today','${task.ref}',this)"></div>
+          <div class="pi-body">
+            <div class="pi-text">${task.text}</div>
+            <div class="pi-meta">
+              <span class="pi-deadline ${dlClass}">${task.deadline}</span>
+              <span class="pi-ref">${task.ref}</span>
+            </div>
+          </div>
+        </div>`;
+      });
+    }
+    items.innerHTML = html;
+
+    // 今日里程碑
+    const nearMilestone = MILESTONES.filter(m => {
+      const d = daysUntil(m.date);
+      return d >= 0 && d <= 7;
+    });
+    if(nearMilestone.length > 0) {
+      const m = nearMilestone[0];
+      const d = daysUntil(m.date);
+      let when = '';
+      if(d === 0) when = '今天';
+      else if(d === 1) when = '明天';
+      else when = `${d}天后`;
+      milestone.innerHTML = `<div class="plan-milestone-label">${m.icon} ${when} · ${m.label}</div>
+        <div class="plan-milestone-text">${m.desc}</div>`;
+      milestone.style.display = 'block';
+    } else {
+      milestone.style.display = 'none';
+    }
+  }
+
+  function renderTomorrow() {
+    const dateStr = '2026-05-17'; // 相对于5月16日的明天
+    const config = TOMORROW_ACTIONS[dateStr] || TOMORROW_ACTIONS['default'];
+
+    const tip = document.getElementById('tomorrow-tip');
+    const items = document.getElementById('tomorrow-items');
+    const urgency = document.getElementById('tomorrow-urgency');
+    const planData = loadPlanData();
+
+    tip.innerHTML = config.tip;
+
+    let html = '<div class="plan-section-label">明天必须完成</div>';
+    config.items.forEach(task => {
+      const done = planData.tomorrowDone && planData.tomorrowDone[task.ref];
+      const dlClass = task.urgency === 'urgent' ? 'urgent' : 'soon';
+      html += `<div class="plan-item${done?' done':''}">
+        <div class="pi-check${done?' checked':''}" data-pi="t-${task.ref}" onclick="togglePlanItem('tomorrow','${task.ref}',this)"></div>
+        <div class="pi-body">
+          <div class="pi-text">${task.text}</div>
+          <div class="pi-meta">
+            <span class="pi-deadline ${dlClass}">${task.deadline}</span>
+            <span class="pi-ref">${task.ref}</span>
+          </div>
+        </div>
+      </div>`;
+    });
+    items.innerHTML = html;
+
+    if(config.urgency) {
+      urgency.innerHTML = `<div class="plan-urgency-label">⚠️ 紧急提醒</div>
+        <div class="plan-urgency-text">${config.urgency}</div>`;
+      urgency.style.display = 'block';
+    } else {
+      urgency.style.display = 'none';
+    }
+  }
+
+  function renderWeek() {
+    const container = document.getElementById('week-items');
+    const now = new Date('2026-05-16');
+    let html = '';
+
+    MILESTONES.forEach(m => {
+      const d = daysUntil(m.date);
+      const mDate = new Date(m.date);
+      if(d < -3) return; // 只显示未来和过去3天内的
+      const dateLabel = m.date.slice(5).replace('-','月') + '日';
+      let dotClass = m.urgent ? 'urgent' : 'todo';
+      if(d < 0) dotClass = 'done';
+
+      let tag = '';
+      if(d === 0) tag = '今日';
+      else if(d === 1) tag = '明天';
+      else if(d === 2) tag = '后天';
+      else if(d > 1 && d <= 3) tag = `${d}天后`;
+
+      html += `<div class="week-item">
+        <div class="week-done ${dotClass}"></div>
+        <div class="week-date${d===0?' today':''}">${dateLabel}${tag?' · '+tag:''}</div>
+        <div class="week-text">${m.icon} ${m.label}</div>
+      </div>`;
+    });
+    container.innerHTML = html;
+  }
+
+  function getTodayTasks() {
+    const daysSinceStart = daysUntil('2026-05-18');
+    if(daysSinceStart > 0) return TODAY_TASKS_PHASE1;
+    return [
+      { text:'发出《项目启动计划及资料清单》，确认甲方收到', ref:'p1-1', deadline:'今天必须', urgency:'urgent' },
+      { text:'到店：第一次访谈（店长+收益负责人）', ref:'p1-3', deadline:'今天', urgency:'urgent' },
+      { text:'跟进甲方拉入项目群，统一文件目录', ref:'合同第1条', deadline:'今天', urgency:'soon' },
+    ];
+  }
+
+  function loadPlanData() {
+    try { return JSON.parse(localStorage.getItem(PLAN_KEY)) || {}; }
+    catch(e) { return {}; }
+  }
+  function savePlanData(data) {
+    localStorage.setItem(PLAN_KEY, JSON.stringify(data));
+  }
+
+  function togglePlanItem(panel, ref, el) {
+    const data = loadPlanData();
+    const key = panel === 'today' ? 'todayDone' : 'tomorrowDone';
+    if(!data[key]) data[key] = {};
+    const isDone = data[key][ref];
+    data[key][ref] = !isDone;
+    savePlanData(data);
+    el.classList.toggle('checked', !isDone);
+    el.closest('.plan-item').classList.toggle('done', !isDone);
+  }
+
+  function switchPlanTab(tab) {
+    ['today','tomorrow','week'].forEach(t => {
+      document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+      document.getElementById('panel-'+t).classList.toggle('hidden', t!==tab);
+    });
+  }
+
+  injectFileAreas();
+  renderPlan();
+  update();
+
+  // ── Export / Import ──
+  function getAllData() {
+    const st = load();
+    const files = loadFiles();
+    return { version: 1, exportedAt: new Date().toISOString(), checkData: st, fileData: files };
+  }
+
+  function exportAll() {
+    const data = getAllData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = '致城项目数据_' + dateStr + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showSyncStatus('✅ 数据已导出，文件保存在浏览器的下载文件夹');
+  }
+
+  function importAll(input) {
+    const file = input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if(!data.version || !data.checkData) throw new Error('无效的数据文件');
+        // 恢复勾选状态
+        const st = data.checkData;
+        if(st.c) {
+          Object.keys(st.c).forEach(id => {
+            const checked = st.c[id];
+            const cb = document.querySelector(`.del-check[data-del="${id}"], .del-check[data-task="${id}"]`);
+            if(cb) cb.classList.toggle('checked', checked);
+            const nm = document.querySelector(`.del-name[data-for="${id}"], .task-name[data-for="${id}"]`);
+            if(nm) nm.classList.toggle('checked', checked);
+          });
+          // 写回 localStorage
+          try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(ex) {}
+        }
+        if(st.n) {
+          document.getElementById('notes-area').value = st.n || '';
+          try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(ex) {}
+        }
+        // 恢复文件
+        if(data.fileData) {
+          try { localStorage.setItem(FILE_KEY, JSON.stringify(data.fileData)); } catch(ex) {
+            alert('文件数据过大，部分文件可能无法导入。勾选状态已恢复。');
+          }
+          // 重新渲染所有文件区域
+          ALL_DEL.forEach(id => renderFileArea(id));
+          A6_DEL.forEach(id => renderFileArea(id));
+        }
+        update();
+        showSyncStatus('✅ 数据导入成功！勾选状态与上传文件已恢复');
+      } catch(err) {
+        alert('导入失败：' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    input.value = '';
+  }
+
+  function showSyncStatus(msg) {
+    const el = document.getElementById('sync-status');
+    if(!el) return;
+    el.textContent = msg;
+    el.style.color = 'var(--green)';
+    setTimeout(() => { el.textContent = ''; }, 6000;
+  }
+
+</script>
+</body>
+</html>
