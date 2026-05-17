@@ -1640,30 +1640,40 @@ document.getElementById('notes-area').addEventListener('input', e => {
       badge.style.display = undone.length > 0 ? 'inline' : 'none';
     }
 
+    // 构建单个任务卡片，类似日历提醒样式
     const makeItem = t => {
-      const alarmIcon = t.alarmTime
-        ? `<span style="font-size:11px;background:#fff3cd;color:#856404;padding:1px 5px;border-radius:3px;margin-right:4px;" title="提醒时间：${t.alarmTime}">⏰ ${t.alarmTime}</span>`
+      const isDone = t.done;
+      const checkId = 'ck-' + t.id;
+      const alarmHtml = t.alarmTime
+        ? `<div style="display:inline-flex;align-items:center;gap:4px;background:#fff8e6;border:1px solid #ffe0a0;border-radius:6px;padding:2px 8px;font-size:11px;color:#b7791f;font-weight:600;margin-bottom:5px;">
+            <span>⏰</span><span>${t.alarmTime}</span>
+           </div>`
         : '';
-      const strikethrough = t.done ? 'text-decoration:line-through;opacity:0.5;' : '';
       return `
-      <div class="plan-item ${t.done ? 'done' : ''}" style="display:flex;align-items:center;gap:6px;padding:4px 0;">
-        <input type="checkbox" ${t.done ? 'checked' : ''}
-          onchange="toggleCustomTask(${t.id})"
-          style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent);">
-        <span style="flex:1;font-size:13px;${strikethrough}">
-          ${alarmIcon}${t.text}
-        </span>
-        <button onclick="delCustomTask(${t.id})"
-          title="删除任务"
-          style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 4px;border-radius:3px;">
-          ✕
-        </button>
+      <div class="custom-task-card ${isDone ? 'task-done' : ''}"
+        style="background:${isDone ? '#f8f8f8' : '#fff'};border:1px solid ${isDone ? '#e0e0e0' : '#e8d4ff'};border-radius:8px;padding:10px 12px;margin-bottom:8px;position:relative;transition:all 0.2s;">
+        <!-- 勾选行 -->
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="checkbox" id="${checkId}" ${isDone ? 'checked' : ''}
+            onclick="toggleCustomTask(${t.id})"
+            style="width:18px;height:18px;cursor:pointer;accent-color:#9b59b6;flex-shrink:0;">
+          <label for="${checkId}"
+            style="flex:1;font-size:13px;cursor:pointer;${isDone ? 'text-decoration:line-through;color:#aaa;' : 'color:#333;font-weight:500;'}">
+            ${t.text}
+          </label>
+          <button onclick="delCustomTask(${t.id})" title="删除"
+            style="background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:3px;flex-shrink:0;">
+            ✕
+          </button>
+        </div>
+        ${alarmHtml ? '<div style="margin-top:6px;margin-left:28px;">' + alarmHtml + '</div>' : ''}
       </div>`;
     };
 
     list.innerHTML =
-      (undone.length ? '<div style="margin-bottom:4px;">' + undone.map(makeItem).join('') + '</div>' : '') +
-      (done.length ? '<div><div style="font-size:11px;color:var(--muted);margin:6px 0 2px;">已完成</div>' + done.map(makeItem).join('') + '</div>' : '');
+      (undone.length ? '<div style="margin-bottom:6px;">' + undone.map(makeItem).join('') + '</div>' : '') +
+      (done.length ? '<div><div style="font-size:11px;color:var(--muted);margin:10px 0 4px;font-weight:600;">已完成 ' + done.length + ' 项</div>' + done.map(makeItem).join('') + '</div>' : '') +
+      (!visibleTasks.length ? '<div style="color:var(--muted);font-size:13px;padding:12px 0;text-align:center;">暂无任务，添加一个吧 ✏️</div>' : '');
   }
 
   // ── 任务闹钟系统 ──
