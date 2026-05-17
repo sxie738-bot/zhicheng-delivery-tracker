@@ -1,3 +1,8 @@
+<!--
+  致城顾问项目交付追踪台 v2.0.1
+  Build: 2026-05-17 (P0 Bug Fix: 修复 notes-area 引用错误 + 硬编码日期 + 重复声明)
+  部署: https://sxie738-bot.github.io/zhicheng-delivery-tracker/
+-->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -963,7 +968,9 @@ function save(s) {
 }
 
 const st = load();
-document.getElementById('notes-area').value = st.n || '';
+// notes-area is legacy (removed); safely skip if not present
+const notesArea = document.getElementById('notes-area');
+if(notesArea) notesArea.value = st.n || '';
 if(st.ts) document.getElementById('last-save').textContent = st.ts;
 
 // ── Check ──
@@ -1001,7 +1008,7 @@ const milestones = [
   {id:'ms5',dot:'msd5',txt:'mst5',date:new Date('2026-08-15')},
   {id:'ms6',dot:'msd6',txt:'mst6',date:new Date('2026-08-18')},
 ];
-const today = new Date('2026-05-16');
+const today = new Date(); // 真实当前日期
 milestones.forEach(m => {
   const dot = document.getElementById(m.dot);
   const txt = document.getElementById(m.txt);
@@ -1039,14 +1046,15 @@ document.querySelectorAll('.del-check[data-task]').forEach(cb => {
   cb.addEventListener('click', () => check(id, !st.c[id]));
 });
 
-// Notes auto-save
-document.getElementById('notes-area').addEventListener('input', e => {
-  st.n = e.target.value;
-  save(st);
-});
+// Notes auto-save (legacy; skip if notes-area not present)
+const notesAreaEl = document.getElementById('notes-area');
+if(notesAreaEl) {
+  notesAreaEl.addEventListener('input', e => {
+    st.n = e.target.value;
+    save(st);
+  });
+}
 
-
-  // ── File Upload Logic ──
   const FILE_KEY = 'zhicheng-v2-files';
   const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB per file
 
@@ -1255,7 +1263,7 @@ document.getElementById('notes-area').addEventListener('input', e => {
   // ── Smart Daily Planner ──
   const PLAN_KEY = 'zhicheng-v2-plan';
   const CUSTOM_KEY = 'zhicheng-v2-custom-tasks';
-  const today = new Date();
+  // today already declared at top of script
   const todayStr = today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
   const PHASE1_END = new Date('2026-06-17');
   const PHASE2_END = new Date('2026-08-18');
@@ -1889,7 +1897,7 @@ document.getElementById('notes-area').addEventListener('input', e => {
 
   function renderWeek() {
     const container = document.getElementById('week-items');
-    const now = new Date('2026-05-16');
+    const now = today; // use global today
     let html = '';
 
     MILESTONES.forEach(m => {
@@ -2001,7 +2009,8 @@ document.getElementById('notes-area').addEventListener('input', e => {
           try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(ex) {}
         }
         if(st.n) {
-          document.getElementById('notes-area').value = st.n || '';
+          const legacyNotesArea = document.getElementById('notes-area');
+          if(legacyNotesArea) legacyNotesArea.value = st.n || '';
           try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(ex) {}
         }
         // 恢复文件
