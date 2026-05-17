@@ -389,6 +389,7 @@
       <div class="section-title">
         <div class="num" style="background:#7a5fa6">☀</div>
         每日行动规划
+        <span id="plan-custom-badge" style="font-size:11px;font-weight:600;background:var(--accent);color:#fff;padding:1px 7px;border-radius:10px;margin-left:6px;display:none;">0</span>
         <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:4px;">基于交付节点自动生成</span>
       </div>
 
@@ -405,14 +406,30 @@
         <div class="plan-items" id="today-items"></div>
         <div class="plan-milestone" id="today-milestone"></div>
         <div class="plan-done" id="today-done-area"></div>
-        <!-- 用户自定义任务同步区 -->
-        <div id="plan-custom-area" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border-light);">
-          <div class="plan-section-label" style="color:var(--accent);">✏ 我的任务</div>
+
+        <!-- ✏ 我的任务（合并自定义任务） -->
+        <div id="plan-custom-area" style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--border-light);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="plan-section-label" style="color:var(--accent);margin-bottom:0;">✏ 我的任务</div>
+            <span style="font-size:11px;color:var(--muted);">未完成任务自动保留到次日</span>
+          </div>
+          <!-- 任务列表 -->
           <div id="plan-custom-items"></div>
-          <button onclick="document.getElementById('custom-task-input').focus()" style="
-            margin-top:6px;background:none;border:1px dashed var(--accent);color:var(--accent);
-            padding:4px 10px;border-radius:3px;font-size:11px;cursor:pointer;width:100%;
-          ">＋ 添加任务</button>
+          <!-- 添加任务行 -->
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <input type="text" id="custom-task-input"
+              placeholder="输入任务名称，回车添加…"
+              style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px;outline:none;background:var(--card2);"
+              onkeydown="if(event.key==='Enter')addCustomTask()">
+            <input type="time" id="custom-task-alarm"
+              title="设置闹钟提醒（选填）"
+              style="padding:7px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;outline:none;background:var(--card2);width:88px;">
+            <button onclick="addCustomTask()"
+              style="padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;font-weight:600;white-space:nowrap;">
+              ＋ 添加
+            </button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:5px;">🔔 右侧可选填提醒时间，到点弹出闹钟通知</div>
         </div>
       </div>
 
@@ -483,28 +500,6 @@
       </div>
     </div>
 
-    <!-- 自定义任务清单 -->
-    <div class="card" id="custom-task-card" style="border-left:3px solid var(--accent);">
-      <div class="section-title">
-        <div class="num" style="background:var(--accent)">✏</div>
-        📋 今日自定义任务
-        <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:4px;">添加后自动同步到每日行动规划</span>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <input type="text" id="custom-task-input" placeholder="输入今日任务，回车添加…" style="
-          flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:4px;
-          font-size:13px;outline:none;background:var(--card2);
-        " onkeydown="if(event.key==='Enter')addCustomTask()">
-        <button onclick="addCustomTask()" style="
-          padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:4px;
-          font-size:13px;cursor:pointer;font-weight:600;
-        ">添加</button>
-      </div>
-      <div id="custom-task-list"></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:8px;">
-        ✅ 已完成的任务会自动标记，每天0点自动清空待办记录
-      </div>
-    </div>
   </div>
 
   <!-- ══ 会议管理 ══ -->
@@ -1264,9 +1259,6 @@ document.getElementById('notes-area').addEventListener('input', e => {
   const todayStr = today.toISOString().slice(0, 10); // 'YYYY-MM-DD'
   const PHASE1_END = new Date('2026-06-17');
   const PHASE2_END = new Date('2026-08-18');
-  const PHASE1_END = new Date('2026-06-17');
-  const PHASE2_END = new Date('2026-08-18');
-
 
   // 定义关键里程碑（日期, 名称, 关联交付项）
   const MILESTONES = [
@@ -1552,7 +1544,9 @@ document.getElementById('notes-area').addEventListener('input', e => {
     if (el) el.textContent = `⏱ 剩余 ${diff} 天`;
   }
 
-  // ══ 自定义任务 ══
+  // ══ 自定义任务（合并版，支持闹钟） ══
+  const TASK_ALARM_KEY = 'zhicheng-v2-task-alarms';
+
   function loadCustomTasks() {
     return JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
   }
@@ -1563,73 +1557,211 @@ document.getElementById('notes-area').addEventListener('input', e => {
 
   function addCustomTask() {
     const input = document.getElementById('custom-task-input');
+    const alarmInput = document.getElementById('custom-task-alarm');
     const val = input.value.trim();
-    if (!val) return;
+    if (!val) {
+      input.focus();
+      return;
+    }
     const tasks = loadCustomTasks();
-    tasks.push({ id: Date.now(), text: val, done: false, date: todayStr });
+    const newTask = {
+      id: Date.now(),
+      text: val,
+      done: false,
+      // 保留创建日期，但不过滤——未完成任务跨天保留
+      createdDate: todayStr,
+      // 闹钟时间（格式 HH:MM，可为空）
+      alarmTime: alarmInput ? alarmInput.value : ''
+    };
+    tasks.push(newTask);
     saveCustomTasks(tasks);
     input.value = '';
-    renderCustomTasks();
+    if (alarmInput) alarmInput.value = '';
+    // 设置闹钟
+    if (newTask.alarmTime) {
+      scheduleTaskAlarm(newTask);
+    }
     renderPlanCustom();
   }
 
   function toggleCustomTask(id) {
     const tasks = loadCustomTasks();
     const t = tasks.find(x => x.id === id);
-    if (t) t.done = !t.done;
+    if (t) {
+      t.done = !t.done;
+      // 取消该任务的闹钟（如果已完成）
+      if (t.done) cancelTaskAlarm(id);
+    }
     saveCustomTasks(tasks);
-    renderCustomTasks();
     renderPlanCustom();
   }
 
   function delCustomTask(id) {
     let tasks = loadCustomTasks();
+    cancelTaskAlarm(id);
     tasks = tasks.filter(x => x.id !== id);
     saveCustomTasks(tasks);
-    renderCustomTasks();
     renderPlanCustom();
-  }
-
-  function renderCustomTasks() {
-    const tasks = loadCustomTasks().filter(t => t.date === todayStr);
-    const list = document.getElementById('custom-task-list');
-    if (!list) return;
-    if (!tasks.length) {
-      list.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px;">今日暂无自定义任务</div>';
-      return;
-    }
-    list.innerHTML = tasks.map(t => `
-      <div class="plan-item ${t.done ? 'done' : ''}" style="display:flex;align-items:center;gap:8px;padding:5px 0;">
-        <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleCustomTask(${t.id})" style="width:14px;height:14px;cursor:pointer;">
-        <span style="flex:1;font-size:13px;">${t.text}</span>
-        <span style="font-size:10px;color:var(--muted);">${t.done ? '✅' : ''}</span>
-        <button onclick="delCustomTask(${t.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;padding:0 2px;">✕</button>
-      </div>
-    `).join('');
   }
 
   function renderPlanCustom() {
-    const tasks = loadCustomTasks().filter(t => t.date === todayStr);
+    const allTasks = loadCustomTasks();
+    const today = new Date();
+    const todayYMD = todayStr;
+
+    // 逻辑：今天创建的任务（含已完成的）
+    //  + 昨天创建且未完成的任务（跨天保留）
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const ymd = y => y.getFullYear() + '-' + String(y.getMonth()+1).padStart(2,'0') + '-' + String(y.getDate()).padStart(2,'0');
+    const yesterdayStr = ymd(yesterday);
+
+    const visibleTasks = allTasks.filter(t =>
+      t.createdDate === todayYMD ||
+      (t.createdDate === yesterdayStr && !t.done)
+    );
+
     const list = document.getElementById('plan-custom-items');
     if (!list) return;
-    if (!tasks.length) {
+
+    if (!visibleTasks.length) {
       list.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:4px 0;">暂无任务，添加一个？</div>';
       return;
     }
-    list.innerHTML = tasks.map(t => `
-      <div class="plan-item ${t.done ? 'done' : ''}" style="display:flex;align-items:center;gap:6px;padding:3px 0;">
-        <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleCustomTask(${t.id})" style="width:13px;height:13px;cursor:pointer;">
-        <span style="flex:1;font-size:12px;">${t.text}</span>
-        <button onclick="delCustomTask(${t.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:10px;padding:0;">✕</button>
-      </div>
-    `).join('');
+
+    // 分组：未完成在前，已完成在后
+    const undone = visibleTasks.filter(t => !t.done);
+    const done = visibleTasks.filter(t => t.done);
+
+    // 更新标题 badge
+    const badge = document.getElementById('plan-custom-badge');
+    if (badge) {
+      badge.textContent = undone.length;
+      badge.style.display = undone.length > 0 ? 'inline' : 'none';
+    }
+
+    const makeItem = t => {
+      const alarmIcon = t.alarmTime
+        ? `<span style="font-size:11px;background:#fff3cd;color:#856404;padding:1px 5px;border-radius:3px;margin-right:4px;" title="提醒时间：${t.alarmTime}">⏰ ${t.alarmTime}</span>`
+        : '';
+      const strikethrough = t.done ? 'text-decoration:line-through;opacity:0.5;' : '';
+      return `
+      <div class="plan-item ${t.done ? 'done' : ''}" style="display:flex;align-items:center;gap:6px;padding:4px 0;">
+        <input type="checkbox" ${t.done ? 'checked' : ''}
+          onchange="toggleCustomTask(${t.id})"
+          style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent);">
+        <span style="flex:1;font-size:13px;${strikethrough}">
+          ${alarmIcon}${t.text}
+        </span>
+        <button onclick="delCustomTask(${t.id})"
+          title="删除任务"
+          style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 4px;border-radius:3px;">
+          ✕
+        </button>
+      </div>`;
+    };
+
+    list.innerHTML =
+      (undone.length ? '<div style="margin-bottom:4px;">' + undone.map(makeItem).join('') + '</div>' : '') +
+      (done.length ? '<div><div style="font-size:11px;color:var(--muted);margin:6px 0 2px;">已完成</div>' + done.map(makeItem).join('') + '</div>' : '');
   }
 
-  // 在计划渲染完成后，把自定义任务也渲染一次
-  const _origRenderPlan = renderPlan;
-  function renderPlan() {
-    _origRenderPlan.call(this);
-    renderPlanCustom();
+  // ── 任务闹钟系统 ──
+  function loadTaskAlarms() {
+    return JSON.parse(localStorage.getItem(TASK_ALARM_KEY) || '{}');
+  }
+  function saveTaskAlarms(alarms) {
+    localStorage.setItem(TASK_ALARM_KEY, JSON.stringify(alarms));
+  }
+
+  function scheduleTaskAlarm(task) {
+    if (!task.alarmTime) return;
+    const [h, m] = task.alarmTime.split(':').map(Number);
+    const now = new Date();
+    let alarmDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+    // 如果今天已过，则设为明天
+    if (alarmDate <= now) alarmDate.setDate(alarmDate.getDate() + 1);
+    const ms = alarmDate - now;
+    const alarms = loadTaskAlarms();
+    // 取消旧的（同名任务的）
+    if (alarms[task.id]) clearTimeout(alarms[task.id].timer);
+    alarms[task.id] = {
+      text: task.text,
+      time: task.alarmTime,
+      timer: setTimeout(() => {
+        fireTaskAlarm(task.id, task.text);
+      }, ms)
+    };
+    saveTaskAlarms(alarms);
+  }
+
+  function cancelTaskAlarm(id) {
+    const alarms = loadTaskAlarms();
+    if (alarms[id]) {
+      clearTimeout(alarms[id].timer);
+      delete alarms[id];
+      saveTaskAlarms(alarms);
+    }
+  }
+
+  function fireTaskAlarm(id, text) {
+    // 浏览器通知
+    if (Notification.permission === 'granted') {
+      new Notification('⏰ 任务提醒', {
+        body: text,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📋</text></svg>',
+        tag: 'task-' + id,
+        requireInteraction: true
+      });
+    }
+    // 也弹一个页面内提醒
+    const msg = document.createElement('div');
+    msg.id = 'task-alarm-toast';
+    msg.innerHTML = `<div style="position:fixed;top:20px;right:20px;z-index:99999;background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:14px 18px;max-width:280px;box-shadow:0 4px 20px rgba(0,0,0,0.2);font-size:13px;">
+      <div style="font-weight:700;color:#856404;margin-bottom:4px;">⏰ 任务提醒</div>
+      <div style="color:#333;">${text}</div>
+      <div style="color:var(--muted);font-size:11px;margin-top:4px;">${todayStr}</div>
+    </div>`;
+    document.body.appendChild(msg);
+    // 页面标题闪烁
+    document.title = '⏰ 任务提醒 — ' + text;
+    setTimeout(() => {
+      if (msg.parentNode) msg.parentNode.removeChild(msg);
+      document.title = '致城顾问 · 交付追踪台';
+    }, 15000);
+    // 通知声音（简单的 beep）
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.8);
+    } catch(e) {}
+    // 闹钟触发后不再重复
+    cancelTaskAlarm(id);
+  }
+
+  // 页面加载时重新注册所有未完成任务的闹钟
+  function restoreTaskAlarms() {
+    const alarms = loadTaskAlarms();
+    const tasks = loadCustomTasks();
+    const now = new Date();
+    tasks.forEach(t => {
+      if (!t.done && t.alarmTime && !alarms[t.id]) {
+        scheduleTaskAlarm(t);
+      }
+    });
+  }
+
+  // 申请通知权限
+  function requestTaskAlarmPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }
 
   function daysUntil(dateStr) {
@@ -1642,6 +1774,7 @@ document.getElementById('notes-area').addEventListener('input', e => {
     renderToday();
     renderTomorrow();
     renderWeek();
+    renderPlanCustom();
   }
 
   function renderToday() {
@@ -1811,6 +1944,8 @@ document.getElementById('notes-area').addEventListener('input', e => {
   injectFileAreas();
   renderPlan();
   update();
+  restoreTaskAlarms();
+  requestTaskAlarmPermission();
 
   // ── Export / Import ──
   function getAllData() {
